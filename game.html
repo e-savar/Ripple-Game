@@ -25,6 +25,19 @@
   --violet:#a99bff;
 }
 
+/* Light mode override */
+[data-theme="light"] {
+  --void:#f8f9fc;
+  --deep:#ffffff;
+  --panel:#f1f3f9;
+  --panel-edge:#d1d5e0;
+  --grid:rgba(0,0,0,0.04);
+  --hi:#1a2236;
+  --mid:#4a5a7a;
+  --dim:#64748b;
+  --amber:#f59e0b;
+}
+
 *{box-sizing:border-box;}
 
 html,body{
@@ -413,24 +426,69 @@ header{
   cursor: pointer;
   margin-top: 8px;
 }
+.top-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.top-btn {
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  color: var(--mid);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.top-btn:hover {
+  background: var(--cyan);
+  color: #070a11;
+  border-color: var(--cyan);
+}
+
+/* How to play popover */
+.howto-popover {
+  position: fixed;
+  top: 80px;
+  right: 30px;
+  background: var(--panel);
+  border: 1px solid var(--cyan);
+  border-radius: 12px;
+  padding: 20px;
+  max-width: 340px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+  display: none;
+  z-index: 100;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.howto-popover.show { display: block; }
 </style>
 </head>
 <body>
 
 <div class="shell">
-  <header>
-    <div class="title-block">
-      <h1>SPLASH</h1>
-      <p id="modeTitle">Daily Puzzle · <span id="nodecount">?</span>-node lattice</p>
-    </div>
-    <div style="display:flex; gap:12px; align-items:center;">
-      <div class="mode-toggle" id="modeToggle">
-        <div class="mode-btn active" data-mode="daily">Daily</div>
-        <div class="mode-btn" data-mode="unlimited">Unlimited</div>
-      </div>
-      <div class="header-pill" id="headerPill"><span id="headerInjections">0</span> injections</div>
-    </div>
-  </header>
+    <header>
+        <div class="title-block">
+          <h1>SPLASH</h1>
+          <p id="modeTitle">Daily Puzzle · <span id="nodecount">?</span>-node lattice</p>
+        </div>
+        <div style="display:flex; gap:12px; align-items:center;">
+          <div class="top-controls">
+            <button class="top-btn" id="howtoBtn">How to Play</button>
+            <button class="top-btn" id="themeToggle">☀️</button>
+          </div>
+          <div class="mode-toggle" id="modeToggle">
+            <div class="mode-btn active" data-mode="daily">Daily</div>
+            <div class="mode-btn" data-mode="unlimited">Unlimited</div>
+          </div>
+          <div class="header-pill" id="headerPill"><span id="headerInjections">0</span> injections</div>
+        </div>
+      </header>
 
   <div class="layout">
     <div class="card graph-card">
@@ -505,6 +563,21 @@ header{
       </div>
     </div>
     <button class="modal-newpuzzle" id="modalNewPuzzle">↻ New puzzle</button>
+  </div>
+</div>
+<div class="howto-popover" id="howtoPopover">
+    <h3 style="margin:0 0 12px 0; color:var(--cyan);">How to Play SPLASH</h3>
+    <p><strong>Goal:</strong> Make every node's energy match its hidden target value.</p>
+    <ul style="padding-left:18px; margin:12px 0;">
+      <li>Click a node to select it</li>
+      <li>Press <strong>1</strong>, <strong>2</strong>, or <strong>3</strong> to inject energy</li>
+      <li>Energy ripples outward through connected nodes (stronger when closer)</li>
+      <li>Green = Perfect match</li>
+      <li>Yellow = Off by 1</li>
+      <li>Red = Off by 2+</li>
+    </ul>
+    <p><strong>Daily Mode:</strong> One puzzle per day. Medium difficulty. Updates at 3 AM EST.</p>
+    <button onclick="document.getElementById('howtoPopover').classList.remove('show')" style="margin-top:12px; width:100%; padding:10px; background:var(--cyan); color:#070a11; border:none; border-radius:8px; cursor:pointer;">Got it</button>
   </div>
 </div>
 
@@ -793,7 +866,11 @@ function showCongrats(){
 function hideCongrats(){
   document.getElementById("modalBackdrop").classList.remove("show");
 }
-
+function getTodayStr(){
+  const now = new Date();
+  const today = new Date(now.getTime() - 3*60*60*1000); // 3 AM EST
+  return today.toISOString().slice(0,10);
+}
 function selectNode(n){
   selected = n;
   
@@ -921,8 +998,14 @@ document.querySelectorAll('.mode-btn').forEach(btn => {
     document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     currentMode = btn.dataset.mode;
+    
     updateUILockState();
-    resetGame();
+
+    if (currentMode === "daily" && dailyPuzzleCache !== null) {
+      resetGame();           // will use cache
+    } else {
+      resetGame();           // will generate new for unlimited
+    }
   });
 });
 // Difficulty buttons
@@ -1003,17 +1086,17 @@ function resetGame(){
 
   if(currentMode === "daily"){
     // Use cached puzzle if available (prevents regeneration on switch)
-    if (dailyPuzzleCache !== null) {
-      n = dailyPuzzleCache.n;
-      LABELS = [...dailyPuzzleCache.LABELS];
-      EDGES = JSON.parse(JSON.stringify(dailyPuzzleCache.EDGES));
-      POS = JSON.parse(JSON.stringify(dailyPuzzleCache.POS));
-      target = {...dailyPuzzleCache.target};
-      state = {};
-      LABELS.forEach(l => state[l] = 0);
-
-      buildGraphDOM();
-    } else {
+    if (dailyPuzzleCache && dailyPuzzleCache.dateStr === getTodayStr()) {
+    // Restore cache
+    n = dailyPuzzleCache.n;
+    LABELS = [...dailyPuzzleCache.LABELS];
+    EDGES = JSON.parse(JSON.stringify(dailyPuzzleCache.EDGES));
+    POS = JSON.parse(JSON.stringify(dailyPuzzleCache.POS));
+    target = {...dailyPuzzleCache.target};
+    state = {};
+    LABELS.forEach(l => state[l] = 0);
+    buildGraphDOM();
+  } else {
       // First time in Daily mode today — generate and cache
       const now = new Date();
       const today = new Date(now.getTime() - 3*60*60*1000); // 3 AM EST cutoff
@@ -1033,16 +1116,21 @@ function resetGame(){
 
       // Cache for the session
       dailyPuzzleCache = {
+        dateStr: getTodayStr(),                    // ← Add this
         n: n,
         LABELS: [...LABELS],
         EDGES: JSON.parse(JSON.stringify(EDGES)),
         POS: JSON.parse(JSON.stringify(POS)),
         target: {...target}
-      };
+        };
     }
   } else {
-    // Unlimited mode - always generate new
+    // Only clear cache if the day has changed
+    const now = new Date();
+    const todayStr = new Date(now.getTime() - 3*60*60*1000).toISOString().slice(0,10);
+    if (dailyPuzzleCache && dailyPuzzleCache.dateStr !== todayStr) {
     dailyPuzzleCache = null;
+    }
     let minNodes = currentDifficulty === "easy" ? MIN_NODES_EASY : currentDifficulty === "medium" ? MIN_NODES_MED : MIN_NODES_HARD;
     let maxNodes = currentDifficulty === "easy" ? MAX_NODES_EASY : currentDifficulty === "medium" ? MAX_NODES_MED : MAX_NODES_HARD;
     n = minNodes + Math.floor(Math.random() * (maxNodes - minNodes + 1));
@@ -1080,6 +1168,33 @@ function resetGame(){
 }
 
 updateUILockState();
+function toggleTheme(){
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  document.documentElement.setAttribute('data-theme', isLight ? 'dark' : 'light');
+  localStorage.setItem('theme', isLight ? 'dark' : 'light');
+  document.getElementById('themeToggle').textContent = isLight ? '☀️' : '🌙';
+}
+
+// Theme initialization
+if (localStorage.getItem('theme') === 'light') {
+  document.documentElement.setAttribute('data-theme', 'light');
+  document.getElementById('themeToggle').textContent = '🌙';
+} else {
+  document.getElementById('themeToggle').textContent = '☀️';
+}
+
+document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+document.getElementById('howtoBtn').addEventListener('click', () => {
+  document.getElementById('howtoPopover').classList.toggle('show');
+});
+
+// Close popover when clicking outside
+document.addEventListener('click', (e) => {
+  const popover = document.getElementById('howtoPopover');
+  if (!e.target.closest('#howtoBtn') && !e.target.closest('.howto-popover')) {
+    popover.classList.remove('show');
+  }
+});
 resetGame();
 </script>
 </body>
