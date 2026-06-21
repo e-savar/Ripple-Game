@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Splash</title>
+<title>SPLASH</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
 
@@ -87,6 +87,27 @@ header{
   letter-spacing:0.08em;
   color:var(--dim);
   text-transform:uppercase;
+}
+
+.mode-toggle {
+  display: flex;
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  border-radius: 99px;
+  padding: 4px;
+}
+.mode-btn {
+  padding: 8px 20px;
+  border-radius: 99px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.mode-btn.active {
+  background: var(--cyan);
+  color: #070a11;
+  font-weight: 600;
 }
 
 .header-pill{
@@ -379,6 +400,19 @@ header{
   margin-top:10px;
   text-align:right;
 }
+
+.share-btn {
+  width: 100%;
+  padding: 12px;
+  background: var(--cyan);
+  color: #070a11;
+  border: none;
+  border-radius: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+}
 </style>
 </head>
 <body>
@@ -387,9 +421,15 @@ header{
   <header>
     <div class="title-block">
       <h1>SPLASH</h1>
-      <p>Graph energy calibration · <span id="nodecount">?</span>-node lattice</p>
+      <p id="modeTitle">Daily Puzzle · <span id="nodecount">?</span>-node lattice</p>
     </div>
-    <div class="header-pill" id="headerPill"><span id="headerInjections">0</span> injections</div>
+    <div style="display:flex; gap:12px; align-items:center;">
+      <div class="mode-toggle" id="modeToggle">
+        <div class="mode-btn active" data-mode="daily">Daily</div>
+        <div class="mode-btn" data-mode="unlimited">Unlimited</div>
+      </div>
+      <div class="header-pill" id="headerPill"><span id="headerInjections">0</span> injections</div>
+    </div>
   </header>
 
   <div class="layout">
@@ -441,6 +481,8 @@ header{
         <p class="section-label" style="margin-bottom:8px;">Injection log</p>
         <div class="log" id="log"><div class="empty">No injections yet</div></div>
         <div class="counter" id="counter">0 injections</div>
+
+        <button id="shareBtn" class="share-btn">Share Today's Result</button>
       </div>
     </div>
   </div>
@@ -467,12 +509,9 @@ header{
 </div>
 
 <script>
-const MIN_NODES_EASY = 4;
-const MAX_NODES_EASY = 4;
-const MIN_NODES_MED = 5;
-const MAX_NODES_MED = 6;
-const MIN_NODES_HARD = 7;
-const MAX_NODES_HARD = 9;
+const MIN_NODES_EASY = 4; const MAX_NODES_EASY = 4;
+const MIN_NODES_MED = 5;  const MAX_NODES_MED = 6;
+const MIN_NODES_HARD = 7; const MAX_NODES_HARD = 9;
 
 let LABELS = [];
 let EDGES = {};
@@ -487,6 +526,16 @@ let injections = 0;
 let log = [];
 let alreadySolved = false;
 let currentDifficulty = "easy";
+let currentMode = "daily";
+
+// Seeded random for Daily consistency
+function seededRandom(seed) {
+  let s = seed;
+  return () => {
+    s = Math.sin(s) * 10000;
+    return s - Math.floor(s);
+  };
+}
 
 function shuffle(arr){
   for(let i=arr.length-1;i>0;i--){
@@ -496,7 +545,6 @@ function shuffle(arr){
   return arr;
 }
 
-// ---------- graph generation ----------
 function buildGraphTopology(n){
   const allLetters = "ABCDEFGHIJKL";
   const labels = allLetters.slice(0, n).split("");
@@ -594,33 +642,41 @@ function applyRipple(obj, node, value){
 }
 
 function generatePuzzle(){
-  target = {}; state = {};
-  LABELS.forEach(l => { target[l] = 0; state[l] = 0; });
+  target = {}; 
+  state = {};
+  
+  // Important: Initialize with 0 first
+  LABELS.forEach(l => { 
+    target[l] = 0; 
+    state[l] = 0; 
+  });
+
+  if (LABELS.length === 0) return; // safety
 
   let injectionCount;
   let maxInjectionValue = 3;
 
   if(currentDifficulty === "easy"){
-    injectionCount = LABELS.length + 2;        // Very low targets
+    injectionCount = LABELS.length + 2;
     maxInjectionValue = 2;
-  } 
-  else if(currentDifficulty === "medium"){
+  } else if(currentDifficulty === "medium"){
     injectionCount = Math.floor(LABELS.length * 1.4) + 3;
-    maxInjectionValue = 3;
-  } 
-  else { // hard
+  } else {
     injectionCount = Math.floor(LABELS.length * 1.8) + 5;
-    maxInjectionValue = 3;
   }
 
+  // Use a local random to avoid seeding conflicts
+  const localRandom = Math.random;
+
   for(let i = 0; i < injectionCount; i++){
-    const node = LABELS[Math.floor(Math.random()*LABELS.length)];
-    const val = 1 + Math.floor(Math.random()*maxInjectionValue);
+    const node = LABELS[Math.floor(localRandom()*LABELS.length)];
+    const val = 1 + Math.floor(localRandom()*maxInjectionValue);
     applyRipple(target, node, val);
   }
 
-  maxScale = Math.max(...Object.values(target), 1) * 1.25;
+  maxScale = Math.max(...Object.values(target), 1) * 1.25 || 10;
 }
+
 
 function errorOf(n){ return Math.abs(state[n] - target[n]); }
 function statusOf(n){
@@ -813,7 +869,17 @@ function inject(node, value){
   }, maxDist * 230 + 80);
 }
 
-// Difficulty selection
+// Mode Toggle
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentMode = btn.dataset.mode;
+    resetGame();
+  });
+});
+
+// Difficulty buttons
 document.querySelectorAll('.difficulty-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('active'));
@@ -823,67 +889,27 @@ document.querySelectorAll('.difficulty-btn').forEach(btn => {
 });
 
 document.getElementById("newpuzzle").addEventListener("click", resetGame);
+document.getElementById("resetCurrent").addEventListener("click", resetCurrentPuzzle);
 document.getElementById("modalNewPuzzle").addEventListener("click", resetGame);
 document.getElementById("modalClose").addEventListener("click", hideCongrats);
 document.getElementById("modalBackdrop").addEventListener("click", (e) => {
   if(e.target.id === "modalBackdrop") hideCongrats();
 });
 
-document.addEventListener("keydown", (e) => {
-  if(e.key.toLowerCase() === "r"){ resetGame(); return; }
-  if(e.key === "Escape"){ hideCongrats(); return; }
-  if(["1","2","3"].includes(e.key) && selected){
-    inject(selected, parseInt(e.key));
-  }
+document.getElementById("shareBtn").addEventListener("click", () => {
+  const date = new Date().toISOString().slice(0,10);
+  const text = `🌊 SPLASH ${date}\n${currentDifficulty.toUpperCase()} • ${LABELS.length} nodes • ${injections} injections\nSolved!`;
+  navigator.clipboard.writeText(text).then(() => alert("✅ Copied to clipboard!"));
 });
 
-function resetGame(){
-  let minNodes, maxNodes;
-  if(currentDifficulty === "easy"){
-    minNodes = MIN_NODES_EASY;
-    maxNodes = MAX_NODES_EASY;
-  } else if(currentDifficulty === "medium"){
-    minNodes = MIN_NODES_MED;
-    maxNodes = MAX_NODES_MED;
-  } else {
-    minNodes = MIN_NODES_HARD;
-    maxNodes = MAX_NODES_HARD;
-  }
+document.addEventListener("keydown", (e) => {
+  if(e.key.toLowerCase() === "r") resetGame();
+  if(e.key === "Escape") hideCongrats();
+  if(["1","2","3"].includes(e.key) && selected) inject(selected, parseInt(e.key));
+});
 
-  const n = minNodes + Math.floor(Math.random() * (maxNodes - minNodes + 1));
-  
-  const topo = buildGraphTopology(n);
-  LABELS = topo.labels;
-  EDGES = topo.adj;
-  POS = computeLayout(LABELS);
-
-  buildGraphDOM();
-  generatePuzzle();
-
-  selected = null;
-  injections = 0;
-  log = [];
-  alreadySolved = false;
-  hideCongrats();
-
-  document.getElementById("nodecount").textContent = n;
-  document.getElementById("headerInjections").textContent = "0";
-  document.getElementById("selreadout").textContent = "—";
-  document.getElementById("selreadout").classList.remove("armed");
-  document.getElementById("log").innerHTML = `<div class="empty">No injections yet</div>`;
-  document.getElementById("counter").textContent = "0 injections";
-  
-  setMessage(`New ${n}-node lattice • ${currentDifficulty} difficulty. Select a node to begin.`);
-  updateAll();
-}
-
-// ==================== Reset Current Puzzle (soft reset) ====================
 function resetCurrentPuzzle(){
-  // Reset only player state — keep same graph + same targets
-  LABELS.forEach(l => {
-    state[l] = 0;
-  });
-  
+  LABELS.forEach(l => state[l] = 0);
   selected = null;
   injections = 0;
   log = [];
@@ -900,10 +926,56 @@ function resetCurrentPuzzle(){
   updateAll();
 }
 
-// Add event listener for the new Reset button
-document.getElementById("resetCurrent").addEventListener("click", resetCurrentPuzzle);
+function resetGame(){
+  let n;
+  let randFunc = Math.random;
 
-// Initialize the game
+  if(currentMode === "daily"){
+    const today = new Date().toISOString().slice(0,10);
+    const seed = today.split('-').reduce((sum, part) => sum + parseInt(part), 0);
+    randFunc = seededRandom(seed);
+
+    if(currentDifficulty === "easy") n = 4;
+    else if(currentDifficulty === "medium") n = 5 + Math.floor(randFunc() * 2);
+    else n = 7 + Math.floor(randFunc() * 3);
+  } else {
+    let minNodes = currentDifficulty === "easy" ? MIN_NODES_EASY : currentDifficulty === "medium" ? MIN_NODES_MED : MIN_NODES_HARD;
+    let maxNodes = currentDifficulty === "easy" ? MAX_NODES_EASY : currentDifficulty === "medium" ? MAX_NODES_MED : MAX_NODES_HARD;
+    n = minNodes + Math.floor(Math.random() * (maxNodes - minNodes + 1));
+  }
+
+  const topo = buildGraphTopology(n);
+  LABELS = topo.labels;
+  EDGES = topo.adj;
+  POS = computeLayout(LABELS);
+
+  buildGraphDOM();
+  generatePuzzle();
+
+  selected = null;
+  injections = 0;
+  log = [];
+  alreadySolved = false;
+  hideCongrats();
+
+  // Safe updates
+  const nodeCountEl = document.getElementById("nodecount");
+  if (nodeCountEl) nodeCountEl.textContent = n;
+
+  document.getElementById("headerInjections").textContent = "0";
+  document.getElementById("selreadout").textContent = "—";
+  document.getElementById("selreadout").classList.remove("armed");
+  document.getElementById("log").innerHTML = `<div class="empty">No injections yet</div>`;
+  document.getElementById("counter").textContent = "0 injections";
+
+  const modeText = currentMode === "daily" ? "Daily Puzzle" : "Unlimited Mode";
+  document.getElementById("modeTitle").textContent = `${modeText} · ${n}-node lattice`;
+
+  setMessage(`${currentMode.toUpperCase()} • ${currentDifficulty} • ${n} nodes. Select a node to begin.`);
+  updateAll();
+}
+
+
 resetGame();
 </script>
 </body>
