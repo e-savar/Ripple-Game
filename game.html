@@ -784,9 +784,16 @@ function hideCongrats(){
 
 function selectNode(n){
   selected = n;
+  
+  // Clear all selections first
   document.querySelectorAll(".node").forEach(g => {
-    g.classList.toggle("selected", g.getAttribute("data-id") === n);
+    g.classList.remove("selected");
   });
+  
+  // Add to the new one
+  const nodeEl = document.querySelector(`.node[data-id="${n}"]`);
+  if (nodeEl) nodeEl.classList.add("selected");
+
   document.getElementById("selreadout").textContent = n;
   document.getElementById("selreadout").classList.add("armed");
   setMessage(`Node ${n} selected. Press 1, 2, or 3 to inject energy.`);
@@ -909,12 +916,21 @@ document.addEventListener("keydown", (e) => {
 });
 
 function resetCurrentPuzzle(){
-  LABELS.forEach(l => state[l] = 0);
+  // Reset player state
+  LABELS.forEach(l => {
+    state[l] = 0;
+  });
+  
   selected = null;
   injections = 0;
   log = [];
   alreadySolved = false;
   hideCongrats();
+
+  // === FIX: Clear visual selection ===
+  document.querySelectorAll(".node").forEach(g => {
+    g.classList.remove("selected");
+  });
 
   document.getElementById("headerInjections").textContent = "0";
   document.getElementById("selreadout").textContent = "—";
