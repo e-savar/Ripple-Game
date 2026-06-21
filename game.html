@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RIPPLE MAP — Signal Calibration</title>
+<title>Splash</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
 
@@ -285,29 +285,62 @@ header{
 }
 .selected-readout.armed{ color:var(--amber); border-color:rgba(255,180,84,0.4); }
 
-.energy-buttons{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:6px; }
-.energy-buttons button{
+.difficulty-select{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  margin-bottom:16px;
+}
+
+.difficulty-btn{
   font-family:'JetBrains Mono', monospace;
-  font-size:20px; font-weight:700;
-  padding:14px 0;
+  font-size:15px;
+  font-weight:600;
+  padding:14px 16px;
   border-radius:10px;
   border:1px solid var(--panel-edge);
   background:var(--deep);
   color:var(--mid);
   cursor:pointer;
-  transition:transform 0.12s, border-color 0.2s, color 0.2s, background 0.2s;
-}
-.energy-buttons button:disabled{ opacity:0.35; cursor:not-allowed; }
-.energy-buttons button:not(:disabled):hover{
-  border-color:var(--amber); color:var(--amber); background:rgba(255,180,84,0.06);
-}
-.energy-buttons button:not(:disabled):active{ transform:scale(0.94); }
-.key-hint{
-  font-family:'JetBrains Mono', monospace;
-  font-size:10px; color:var(--dim); text-align:center; margin:0 0 16px;
+  transition:all 0.2s;
+  text-align:left;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
 }
 
-.message{ font-size:13px; color:var(--mid); line-height:1.5; min-height:38px; margin-bottom:14px; }
+.difficulty-btn:hover{
+  border-color:var(--amber);
+  color:var(--amber);
+  background:rgba(255,180,84,0.06);
+}
+
+.difficulty-btn.active{
+  border-color:var(--cyan);
+  color:var(--cyan);
+  background:rgba(86,224,196,0.12);
+}
+
+.difficulty-btn .nodes{
+  font-size:13px;
+  opacity:0.7;
+}
+
+.energy-hint{
+  font-family:'JetBrains Mono', monospace;
+  font-size:11px;
+  color:var(--dim);
+  text-align:center;
+  margin:12px 0 18px;
+}
+
+.message{ 
+  font-size:13px; 
+  color:var(--mid); 
+  line-height:1.5; 
+  min-height:38px; 
+  margin-bottom:14px; 
+}
 
 .newpuzzle{
   width:100%;
@@ -353,7 +386,7 @@ header{
 <div class="shell">
   <header>
     <div class="title-block">
-      <h1>RIPPLE MAP</h1>
+      <h1>SPLASH</h1>
       <p>Graph energy calibration · <span id="nodecount">?</span>-node lattice</p>
     </div>
     <div class="header-pill" id="headerPill"><span id="headerInjections">0</span> injections</div>
@@ -371,14 +404,32 @@ header{
       <div class="card">
         <p class="section-label">Selected node</p>
         <div class="selected-readout" id="selreadout">—</div>
-        <div class="energy-buttons">
-          <button data-val="1" disabled>1</button>
-          <button data-val="2" disabled>2</button>
-          <button data-val="3" disabled>3</button>
+        
+        <p class="section-label" style="margin:16px 0 8px;">Difficulty (New Puzzle)</p>
+        <div class="difficulty-select" id="difficultySelect">
+          <button class="difficulty-btn active" data-diff="easy">
+            <span>Easy</span>
+            <span class="nodes">4 nodes</span>
+          </button>
+          <button class="difficulty-btn" data-diff="medium">
+            <span>Medium</span>
+            <span class="nodes">5-6 nodes</span>
+          </button>
+          <button class="difficulty-btn" data-diff="hard">
+            <span>Hard</span>
+            <span class="nodes">7-9 nodes</span>
+          </button>
         </div>
-        <p class="key-hint">click a node, then tap a value (or press 1 / 2 / 3)</p>
+
+        <div style="display:flex; gap:8px; margin-bottom:12px;">
+            <button class="newpuzzle" id="newpuzzle" style="flex:1">↻ New Puzzle</button>
+            <button class="newpuzzle" id="resetCurrent" style="flex:1">⟳ Reset Current</button>
+        </div>
+
+        <p class="energy-hint">Click a node then press <strong>1</strong>, <strong>2</strong>, or <strong>3</strong> to inject energy</p>
+        
         <div class="message" id="message">Select a node to begin calibration.</div>
-        <button class="newpuzzle" id="newpuzzle">↻ New puzzle (R)</button>
+        
         <p class="section-label" style="margin-bottom:8px;">Legend</p>
         <div class="legend">
           <div><span class="swatch" style="background:var(--cyan);box-shadow:0 0 6px var(--cyan-soft)"></span> matched · exact</div>
@@ -386,6 +437,7 @@ header{
           <div><span class="swatch" style="background:var(--coral);box-shadow:0 0 6px var(--coral-soft)"></span> off-target · off by 2+</div>
           <div><span class="swatch" style="background:var(--violet);border-radius:2px;"></span> target marker on dial</div>
         </div>
+        
         <p class="section-label" style="margin-bottom:8px;">Injection log</p>
         <div class="log" id="log"><div class="empty">No injections yet</div></div>
         <div class="counter" id="counter">0 injections</div>
@@ -415,9 +467,12 @@ header{
 </div>
 
 <script>
-const MIN_NODES = 5;
-const MAX_NODES = 8;
-const STAGE_MS = 230;
+const MIN_NODES_EASY = 4;
+const MAX_NODES_EASY = 4;
+const MIN_NODES_MED = 5;
+const MAX_NODES_MED = 6;
+const MIN_NODES_HARD = 7;
+const MAX_NODES_HARD = 9;
 
 let LABELS = [];
 let EDGES = {};
@@ -431,6 +486,7 @@ let selected = null;
 let injections = 0;
 let log = [];
 let alreadySolved = false;
+let currentDifficulty = "easy";
 
 function shuffle(arr){
   for(let i=arr.length-1;i>0;i--){
@@ -440,9 +496,9 @@ function shuffle(arr){
   return arr;
 }
 
-// ---------- graph generation (variable size, randomly connected) ----------
+// ---------- graph generation ----------
 function buildGraphTopology(n){
-  const allLetters = "ABCDEFGHIJ";
+  const allLetters = "ABCDEFGHIJKL";
   const labels = allLetters.slice(0, n).split("");
   const adj = {};
   labels.forEach(l => adj[l] = []);
@@ -457,7 +513,7 @@ function buildGraphTopology(n){
     return true;
   }
 
-  // random spanning tree -> guarantees full connectivity
+  // spanning tree
   const order = shuffle([...labels]);
   for(let i=1;i<order.length;i++){
     const a = order[i];
@@ -465,10 +521,10 @@ function buildGraphTopology(n){
     addEdge(a,b);
   }
 
-  // sprinkle in extra edges so the graph isn't just a bare tree
-  const extra = Math.max(1, Math.floor(n/3));
+  // extra edges
+  const extra = Math.max(2, Math.floor(n/3));
   let added = 0, attempts = 0;
-  while(added < extra && attempts < extra*10){
+  while(added < extra && attempts < extra*15){
     attempts++;
     const a = labels[Math.floor(Math.random()*n)];
     const b = labels[Math.floor(Math.random()*n)];
@@ -482,7 +538,7 @@ function buildGraphTopology(n){
 function computeLayout(labels){
   const n = labels.length;
   const cx = 300, cy = 300;
-  const R = Math.min(230, 130 + n*10);
+  const R = Math.min(235, 125 + n*11);
   const pos = {};
   labels.forEach((l,i) => {
     const ang = (i/n)*Math.PI*2 - Math.PI/2;
@@ -510,7 +566,7 @@ function bfsDist(source){
 
 function bfsParent(source){
   const dist = {}, parent = {};
-  LABELS.forEach(l => dist[l] = null);
+  LABELS.forEach(l => { dist[l] = null; parent[l] = null; });
   dist[source] = 0;
   const q = [source];
   while(q.length){
@@ -526,7 +582,6 @@ function bfsParent(source){
   return { dist, parent };
 }
 
-// linear falloff: each hop away costs exactly 1 unit, floored at 0
 function contribution(value, dist){
   return Math.max(value - dist, 0);
 }
@@ -542,13 +597,29 @@ function generatePuzzle(){
   target = {}; state = {};
   LABELS.forEach(l => { target[l] = 0; state[l] = 0; });
 
-  const injectionCount = LABELS.length + 3;
-  for(let i=0;i<injectionCount;i++){
+  let injectionCount;
+  let maxInjectionValue = 3;
+
+  if(currentDifficulty === "easy"){
+    injectionCount = LABELS.length + 2;        // Very low targets
+    maxInjectionValue = 2;
+  } 
+  else if(currentDifficulty === "medium"){
+    injectionCount = Math.floor(LABELS.length * 1.4) + 3;
+    maxInjectionValue = 3;
+  } 
+  else { // hard
+    injectionCount = Math.floor(LABELS.length * 1.8) + 5;
+    maxInjectionValue = 3;
+  }
+
+  for(let i = 0; i < injectionCount; i++){
     const node = LABELS[Math.floor(Math.random()*LABELS.length)];
-    const val = 1 + Math.floor(Math.random()*3);
+    const val = 1 + Math.floor(Math.random()*maxInjectionValue);
     applyRipple(target, node, val);
   }
-  maxScale = Math.max(...Object.values(target), 1) * 1.2;
+
+  maxScale = Math.max(...Object.values(target), 1) * 1.25;
 }
 
 function errorOf(n){ return Math.abs(state[n] - target[n]); }
@@ -569,11 +640,10 @@ function buildGraphDOM(){
   svgEdges.innerHTML = "";
   svgNodes.innerHTML = "";
 
-  // node sizing scales down as the lattice grows, to avoid overlap
   const n = LABELS.length;
-  const R = Math.min(230, 130 + n*10);
+  const R = Math.min(235, 125 + n*11);
   const chord = 2 * R * Math.sin(Math.PI / n);
-  R_OUTER = Math.max(24, Math.min(46, chord * 0.36));
+  R_OUTER = Math.max(22, Math.min(48, chord * 0.37));
   R_CORE = R_OUTER * 0.74;
   CIRC = 2 * Math.PI * R_OUTER;
   const scale = R_OUTER / 46;
@@ -624,6 +694,7 @@ function angleToPoint(fraction, radius){
 
 function updateNodeVisual(n){
   const g = svgNodes.querySelector(`[data-id="${n}"]`);
+  if(!g) return;
   const status = statusOf(n);
   g.setAttribute("data-status", status);
 
@@ -662,14 +733,14 @@ function selectNode(n){
   });
   document.getElementById("selreadout").textContent = n;
   document.getElementById("selreadout").classList.add("armed");
-  document.querySelectorAll(".energy-buttons button").forEach(b => b.disabled = false);
-  setMessage(`Node ${n} selected. Choose 1, 2, or 3 to inject energy.`);
+  setMessage(`Node ${n} selected. Press 1, 2, or 3 to inject energy.`);
 }
 
 function setMessage(msg){ document.getElementById("message").textContent = msg; }
 
 function flashNode(n){
   const g = svgNodes.querySelector(`[data-id="${n}"]`);
+  if(!g) return;
   const flash = g.querySelector(".flash");
   flash.classList.remove("go");
   void flash.offsetWidth;
@@ -681,7 +752,7 @@ function flashEdge(a,b){
   const line = svgEdges.querySelector(`[data-key="${key}"]`);
   if(!line) return;
   line.classList.add("active");
-  setTimeout(() => line.classList.remove("active"), STAGE_MS);
+  setTimeout(() => line.classList.remove("active"), 230);
 }
 
 function spawnPulseDot(a, b, duration){
@@ -713,9 +784,8 @@ function logInjection(node, value){
 
 function inject(node, value){
   const {dist, parent} = bfsParent(node);
-  // anything farther than `value` hops gets zero contribution — no point animating it
   const reach = LABELS.filter(n => dist[n] !== null && dist[n] <= value);
-  const maxDist = Math.max(...reach.map(n => dist[n]));
+  const maxDist = Math.max(...reach.map(n => dist[n] || 0));
 
   for(const n of reach){
     const d = dist[n];
@@ -724,9 +794,9 @@ function inject(node, value){
       updateNodeVisual(n);
       flashNode(n);
       if(d > 0) flashEdge(parent[n], n);
-    }, d * STAGE_MS);
+    }, d * 230);
     if(d > 0){
-      setTimeout(() => spawnPulseDot(parent[n], n, STAGE_MS), (d-1) * STAGE_MS);
+      setTimeout(() => spawnPulseDot(parent[n], n, 230), (d-1) * 230);
     }
   }
 
@@ -740,12 +810,15 @@ function inject(node, value){
     } else if(!solved()){
       setMessage(`Injected ${value} energy at node ${node}.`);
     }
-  }, maxDist * STAGE_MS + 60);
+  }, maxDist * 230 + 80);
 }
 
-document.querySelectorAll(".energy-buttons button").forEach(btn => {
-  btn.addEventListener("click", () => {
-    if(selected) inject(selected, parseInt(btn.getAttribute("data-val")));
+// Difficulty selection
+document.querySelectorAll('.difficulty-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentDifficulty = btn.dataset.diff;
   });
 });
 
@@ -765,7 +838,20 @@ document.addEventListener("keydown", (e) => {
 });
 
 function resetGame(){
-  const n = MIN_NODES + Math.floor(Math.random() * (MAX_NODES - MIN_NODES + 1));
+  let minNodes, maxNodes;
+  if(currentDifficulty === "easy"){
+    minNodes = MIN_NODES_EASY;
+    maxNodes = MAX_NODES_EASY;
+  } else if(currentDifficulty === "medium"){
+    minNodes = MIN_NODES_MED;
+    maxNodes = MAX_NODES_MED;
+  } else {
+    minNodes = MIN_NODES_HARD;
+    maxNodes = MAX_NODES_HARD;
+  }
+
+  const n = minNodes + Math.floor(Math.random() * (maxNodes - minNodes + 1));
+  
   const topo = buildGraphTopology(n);
   LABELS = topo.labels;
   EDGES = topo.adj;
@@ -784,13 +870,40 @@ function resetGame(){
   document.getElementById("headerInjections").textContent = "0";
   document.getElementById("selreadout").textContent = "—";
   document.getElementById("selreadout").classList.remove("armed");
-  document.querySelectorAll(".energy-buttons button").forEach(b => b.disabled = true);
   document.getElementById("log").innerHTML = `<div class="empty">No injections yet</div>`;
   document.getElementById("counter").textContent = "0 injections";
-  setMessage(`New ${n}-node lattice generated. Select a node to begin.`);
+  
+  setMessage(`New ${n}-node lattice • ${currentDifficulty} difficulty. Select a node to begin.`);
   updateAll();
 }
 
+// ==================== Reset Current Puzzle (soft reset) ====================
+function resetCurrentPuzzle(){
+  // Reset only player state — keep same graph + same targets
+  LABELS.forEach(l => {
+    state[l] = 0;
+  });
+  
+  selected = null;
+  injections = 0;
+  log = [];
+  alreadySolved = false;
+  hideCongrats();
+
+  document.getElementById("headerInjections").textContent = "0";
+  document.getElementById("selreadout").textContent = "—";
+  document.getElementById("selreadout").classList.remove("armed");
+  document.getElementById("log").innerHTML = `<div class="empty">No injections yet</div>`;
+  document.getElementById("counter").textContent = "0 injections";
+  
+  setMessage(`Puzzle reset — same targets. Select a node to begin again.`);
+  updateAll();
+}
+
+// Add event listener for the new Reset button
+document.getElementById("resetCurrent").addEventListener("click", resetCurrentPuzzle);
+
+// Initialize the game
 resetGame();
 </script>
 </body>
