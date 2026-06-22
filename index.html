@@ -1,0 +1,1739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RIPPLE</title>
+<h1 style="color:red">INDEX LOADED</h1>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+
+:root{
+  --void:#070a11;
+  --deep:#0c1220;
+  --panel:#10182a;
+  --panel-edge:#1d2740;
+  --grid:rgba(255,255,255,0.035);
+  --hi:#eef2fb;
+  --mid:#8d97b5;
+  --dim:#525c79;
+  --amber:#ffb454;
+  --amber-soft:rgba(255,180,84,0.18);
+  --cyan:#56e0c4;
+  --cyan-soft:rgba(86,224,196,0.16);
+  --coral:#ff7a8a;
+  --coral-soft:rgba(255,122,138,0.16);
+  --violet:#a99bff;
+}
+
+/* Light mode override */
+[data-theme="light"] {
+  --void:#f8f9fc;
+  --deep:#ffffff;
+  --panel:#f1f3f9;
+  --panel-edge:#d1d5e0;
+  --grid:rgba(0,0,0,0.04);
+  --hi:#1a2236;
+  --mid:#4a5a7a;
+  --dim:#64748b;
+  --amber:#f59e0b;
+}
+
+*{box-sizing:border-box;}
+
+html,body{
+  margin:0;
+  min-height:100vh;
+  background:
+    radial-gradient(ellipse 900px 600px at 20% -10%, rgba(86,224,196,0.05), transparent 60%),
+    radial-gradient(ellipse 800px 700px at 100% 110%, rgba(255,180,84,0.05), transparent 60%),
+    var(--void);
+  color:var(--hi);
+  font-family:'Space Grotesk', system-ui, sans-serif;
+}
+
+body::before{
+  content:"";
+  position:fixed; inset:0; pointer-events:none; z-index:0;
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size:34px 34px;
+  opacity:0.6;
+}
+
+.shell{
+  position:relative; z-index:1;
+  max-width:1080px;
+  margin:0 auto;
+  padding:28px 20px 60px;
+}
+
+header{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  flex-wrap:wrap;
+  gap:14px;
+  margin-bottom:22px;
+}
+
+.title-block h1{
+  margin:0;
+  font-size:clamp(26px,4.2vw,38px);
+  font-weight:700;
+  letter-spacing:0.01em;
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.title-block h1::before{
+  content:"";
+  width:11px; height:11px; border-radius:50%;
+  background:var(--amber);
+  box-shadow:0 0 14px 3px var(--amber-soft);
+  flex-shrink:0;
+}
+.title-block p{
+  margin:6px 0 0 23px;
+  font-family:'JetBrains Mono', monospace;
+  font-size:12px;
+  letter-spacing:0.08em;
+  color:var(--dim);
+  text-transform:uppercase;
+}
+
+.mode-toggle {
+  display: flex;
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  border-radius: 99px;
+  padding: 4px;
+}
+.mode-btn {
+  padding: 8px 20px;
+  border-radius: 99px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  cursor: pointer;
+  transition:
+    background .25s ease,
+    color .25s ease,
+    transform .2s ease;
+}
+.mode-btn.active {
+  background: var(--cyan);
+  color: #070a11;
+  font-weight: 600;
+  transform:translateY(-2px);
+}
+
+.header-pill{
+  font-family:'JetBrains Mono', monospace;
+  font-size:12px;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+  padding:9px 16px;
+  border-radius:99px;
+  border:1px solid var(--panel-edge);
+  background:var(--panel);
+  color:var(--dim);
+  white-space:nowrap;
+}
+.header-pill span{ color:var(--mid); font-weight:600; }
+
+/* ---- congrats modal ---- */
+.modal-backdrop{
+  position:fixed; inset:0; z-index:50;
+  background:rgba(5,7,12,0.72);
+  backdrop-filter:blur(3px);
+  display:flex; align-items:center; justify-content:center;
+  opacity:0; pointer-events:none;
+  transition:opacity 0.25s;
+  padding:20px;
+}
+.modal-backdrop.show{ opacity:1; pointer-events:auto; }
+
+.modal-card{
+  position:relative;
+  width:100%; max-width:360px;
+  background:var(--panel);
+  border:1px solid rgba(86,224,196,0.35);
+  border-radius:20px;
+  padding:34px 32px 28px;
+  text-align:center;
+  transform:scale(0.92) translateY(6px);
+  transition:transform 0.25s cubic-bezier(.2,.8,.2,1);
+  box-shadow:0 0 70px rgba(86,224,196,0.14);
+}
+.modal-backdrop.show .modal-card{ transform:scale(1) translateY(0); }
+
+.modal-close{
+  position:absolute; top:12px; right:14px;
+  background:none; border:none;
+  color:var(--dim); font-size:20px; line-height:1;
+  cursor:pointer; padding:4px;
+  transition:color 0.2s;
+}
+.modal-close:hover{ color:var(--hi); }
+
+.modal-icon{
+  width:52px; height:52px; margin:0 auto 16px;
+  border-radius:50%;
+  background:var(--cyan-soft);
+  border:1px solid rgba(86,224,196,0.4);
+  color:var(--cyan);
+  display:flex; align-items:center; justify-content:center;
+  font-size:24px;
+}
+
+.modal-card h2{ margin:0 0 6px; font-size:23px; }
+.modal-sub{ margin:0 0 22px; color:var(--mid); font-size:13px; line-height:1.5; }
+
+.modal-stats{ display:flex; justify-content:center; gap:30px; margin-bottom:24px; }
+.modal-stats .stat-num{
+  display:block;
+  font-family:'JetBrains Mono', monospace;
+  font-size:30px; font-weight:700;
+  color:var(--hi);
+}
+.modal-stats .stat-label{
+  display:block; margin-top:4px;
+  font-family:'JetBrains Mono', monospace;
+  font-size:10px; letter-spacing:0.08em; text-transform:uppercase;
+  color:var(--dim);
+}
+
+.modal-newpuzzle{
+  width:100%;
+  font-family:'JetBrains Mono', monospace;
+  font-size:12px; letter-spacing:0.06em; text-transform:uppercase;
+  padding:13px 0;
+  border-radius:10px;
+  border:1px solid rgba(86,224,196,0.4);
+  background:rgba(86,224,196,0.08);
+  color:var(--cyan);
+  cursor:pointer;
+  transition:background 0.2s;
+}
+.modal-newpuzzle:hover{ background:rgba(86,224,196,0.16); }
+
+.layout{
+  display:grid;
+  grid-template-columns: 1fr 300px;
+  gap:20px;
+}
+@media (max-width:760px){
+  .layout{ grid-template-columns:1fr; }
+  .panel{ order:2; }
+  .graph-card{ order:1; }
+}
+
+.card{
+  background:var(--panel);
+  border:1px solid var(--panel-edge);
+  border-radius:18px;
+  padding:18px;
+}
+
+.graph-card{ display:flex; flex-direction: column; align-items:center; justify-content:flex-start; padding:10px; position: relative;}
+.graph-card svg{ width:100%; height:auto; display:block; max-width:560px; }
+
+/* graph elements */
+.edge{
+  stroke:#3c4f7a;
+  stroke-width:4;
+  filter: drop-shadow(0 0 3px rgba(60,79,122,0.5));
+  opacity: 0;
+  transform: translateY(-8px);
+  transition:stroke 0.25s, stroke-width 0.25s;
+}
+.edge.active{ 
+    stroke:var(--amber); 
+    stroke-width:6;
+    filter:
+    drop-shadow(0 0 6px var(--amber))
+    drop-shadow(0 0 12px var(--amber));
+}
+.edge.visible {
+    opacity: 0.95;
+}
+.edge.reveal {
+  animation: edgeDropIn 0.55s cubic-bezier(.2,.8,.2,1) forwards;
+}
+
+@keyframes edgeDropIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 0.95;
+    transform: translateY(0px);
+  }
+}
+
+.node{ cursor:pointer; }
+.node .track{ fill:none; stroke:#1a2236; stroke-width:6; }
+.node .arc{
+  fill:none; stroke-width:6; stroke-linecap:round;
+  stroke:var(--mid);
+  transform:rotate(-90deg);
+  transition:stroke-dashoffset 0.45s cubic-bezier(.2,.8,.2,1), stroke 0.35s;
+}
+.node[data-status="good"] .arc{ stroke:var(--cyan); }
+.node[data-status="mid"] .arc{ stroke:var(--amber); }
+.node[data-status="bad"] .arc{ stroke:var(--coral); }
+
+.node .tick{ stroke:var(--violet); stroke-width:3.5; stroke-linecap:round; opacity:0.85; }
+.node .core{ fill:var(--deep); stroke:var(--panel-edge); stroke-width:1; transition:stroke 0.3s; }
+.node[data-status="good"] .core{ stroke:rgba(86,224,196,0.4); }
+.node[data-status="mid"] .core{ stroke:rgba(255,180,84,0.4); }
+.node[data-status="bad"] .core{ stroke:rgba(255,122,138,0.4); }
+
+.node .glow{ fill:var(--mid); opacity:0.12; transition:fill 0.35s; }
+.node[data-status="good"] .glow{ fill:var(--cyan); }
+.node[data-status="mid"] .glow{ fill:var(--amber); }
+.node[data-status="bad"] .glow{ fill:var(--coral); }
+
+.node .label{
+  font-family:'JetBrains Mono', monospace;
+  letter-spacing:0.1em;
+  fill:var(--dim); text-anchor:middle;
+}
+.node .value{
+  font-family:'JetBrains Mono', monospace;
+  font-weight:600;
+  fill:var(--hi); text-anchor:middle;
+}
+.node .target{
+  font-family:'JetBrains Mono', monospace;
+  fill:var(--amber); text-anchor:middle; opacity:0.85;
+}
+
+.selection-ring{
+  fill:none; stroke:var(--amber); stroke-width:2;
+  stroke-dasharray:4 7; opacity:0; transition:opacity 0.2s;
+}
+.node.selected .selection-ring{ opacity:1; animation:spin 7s linear infinite; }
+@keyframes spin{ to{ transform:rotate(360deg); } }
+
+.flash{ fill:var(--amber); opacity:0; pointer-events:none; }
+.flash.go{ animation:flashpop 0.55s ease-out; }
+@keyframes flashpop{
+  0%{ opacity:0.55; transform:scale(0.6); }
+  100%{ opacity:0; transform:scale(1.9); }
+}
+
+.pulse-dot{
+  fill:var(--amber);
+  filter:drop-shadow(0 0 5px var(--amber));
+  transition:cx linear, cy linear, opacity linear;
+}
+
+/* panel */
+.panel{ display:flex; flex-direction:column; gap:14px; }
+
+.section-label{
+  font-family:'JetBrains Mono', monospace;
+  font-size:11px; letter-spacing:0.12em;
+  color:var(--dim); text-transform:uppercase;
+  margin:0 0 10px;
+}
+
+.selected-readout{
+  font-family:'JetBrains Mono', monospace;
+  font-size:34px; font-weight:700;
+  text-align:center;
+  color:var(--mid);
+  border:1px dashed var(--panel-edge);
+  border-radius:12px;
+  padding:14px 0;
+  margin-bottom:12px;
+  transition:color 0.2s, border-color 0.2s;
+}
+.selected-readout.armed{ color:var(--amber); border-color:rgba(255,180,84,0.4); }
+
+.difficulty-select{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  margin-bottom:16px;
+}
+
+.difficulty-btn{
+  font-family:'JetBrains Mono', monospace;
+  font-size:15px;
+  font-weight:600;
+  padding:14px 16px;
+  border-radius:10px;
+  border:1px solid var(--panel-edge);
+  background:var(--deep);
+  color:var(--mid);
+  cursor:pointer;
+  transition:all 0.2s;
+  text-align:left;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.difficulty-btn:hover{
+  border-color:var(--amber);
+  color:var(--amber);
+  background:rgba(255,180,84,0.06);
+}
+
+.difficulty-btn.active{
+  border-color:var(--cyan);
+  color:var(--cyan);
+  background:rgba(86,224,196,0.12);
+}
+
+.difficulty-btn .nodes{
+  font-size:13px;
+  opacity:0.7;
+}
+
+.energy-hint{
+  font-family:'JetBrains Mono', monospace;
+  font-size:11px;
+  color:var(--dim);
+  text-align:center;
+  margin:12px 0 18px;
+}
+
+.message{ 
+  font-size:13px; 
+  color:var(--mid); 
+  line-height:1.5; 
+  min-height:38px; 
+  margin-bottom:14px; 
+}
+
+.newpuzzle{
+  width:100%;
+  font-family:'JetBrains Mono', monospace;
+  font-size:12px; letter-spacing:0.08em; text-transform:uppercase;
+  padding:12px 0;
+  border-radius:10px;
+  border:1px solid var(--panel-edge);
+  background:transparent;
+  color:var(--mid);
+  cursor:pointer;
+  transition:border-color 0.2s, color 0.2s;
+  margin-bottom:18px;
+}
+.newpuzzle:hover{ border-color:var(--violet); color:var(--violet); }
+
+.legend{ display:flex; flex-direction:column; gap:7px; margin-bottom:18px; }
+.legend div{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--mid); }
+.legend span.swatch{ width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+
+.log{
+  font-family:'JetBrains Mono', monospace;
+  font-size:12px;
+  color:var(--dim);
+  display:flex; flex-direction:column; gap:5px;
+  max-height:120px;
+  overflow-y:auto;
+}
+.log div{ display:flex; justify-content:space-between; }
+.log div span.n{ color:var(--mid); }
+.log .empty{ color:var(--dim); font-style:italic; }
+
+.counter{
+  font-family:'JetBrains Mono', monospace;
+  font-size:11px; color:var(--dim);
+  margin-top:10px;
+  text-align:right;
+}
+
+.share-btn {
+  width: 100%;
+  padding: 12px;
+  background: var(--cyan);
+  color: #070a11;
+  border: none;
+  border-radius: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+}
+.top-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.top-btn {
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  color: var(--mid);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.top-btn:hover {
+  background: var(--cyan);
+  color: #070a11;
+  border-color: var(--cyan);
+}
+
+.howto-popover {
+  position: fixed;
+
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(.8);
+
+  background: var(--panel);
+  border: 1px solid var(--cyan);
+  border-radius: 16px;
+
+  padding: 24px;
+  max-width: 420px;
+  width: calc(100% - 32px);
+
+  z-index: 999;
+
+  opacity: 0;
+  pointer-events: none;
+
+  transition:
+    opacity .25s ease,
+    transform .25s ease;
+
+  box-shadow: 0 20px 60px rgba(0,0,0,.45);
+}
+
+.howto-popover.show {
+  animation: popupAppear .3s cubic-bezier(.2,.8,.2,1);
+  opacity:1;
+  pointer-events:auto;
+  transform:translate(-50%,-50%) scale(1);
+}
+
+@keyframes popupAppear{
+  from{
+    opacity:0;
+    transform:translate(-50%,-50%) scale(.8);
+  }
+  to{
+    opacity:1;
+    transform:translate(-50%,-50%) scale(1);
+  }
+}
+/* =========================
+   MOBILE IMPROVEMENTS PATCH
+   ========================= */
+
+   @media (max-width: 768px) {
+
+html {
+  font-size: 14px;
+}
+
+body {
+  font-size: 14px;
+}
+
+/* kill oversized spacing everywhere */
+.shell {
+  padding: 12px 10px 24px;
+}
+
+.card {
+  padding: 12px;
+  border-radius: 14px;
+}
+
+/* HEADER SHRINK */
+header {
+  gap: 8px;
+}
+
+.title-block h1 {
+  font-size: 20px;
+}
+
+.title-block p {
+  font-size: 10px;
+  margin-left: 0;
+}
+
+/* BUTTONS: THIS IS THE BIG ONE */
+button,
+.top-btn,
+.newpuzzle,
+.share-btn,
+.difficulty-btn {
+  font-size: 12px !important;
+  padding: 8px 10px !important;
+  border-radius: 8px;
+}
+
+.mode-btn {
+  font-size: 11px;
+  padding: 6px 10px;
+}
+
+/* PANEL TEXT SHRINK */
+.selected-readout {
+  font-size: 20px;
+  padding: 8px 0;
+}
+
+.section-label {
+  font-size: 10px;
+}
+
+.message {
+  font-size: 12px;
+}
+
+.legend div {
+  font-size: 11px;
+}
+
+.log {
+  font-size: 11px;
+}
+
+.counter {
+  font-size: 10px;
+}
+
+/* REMOVE “DESKTOP FEEL” SPACING */
+.panel {
+  gap: 10px;
+}
+
+.difficulty-select {
+  gap: 6px;
+}
+
+.header-pill {
+  font-size: 10px;
+  padding: 6px 10px;
+}
+}
+
+.graph-card svg {
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+}
+
+/* Critical: prevent overflow scaling weirdness */
+svg#svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 70vh;
+}
+/* Mobile controls styling */
+/* Mobile controls styling */
+.mobile-controls {
+
+  margin-top: 12px;
+
+  display: none;
+  gap: 14px;
+
+  padding: 10px 12px;
+  border-radius: 14px;
+
+  background: rgba(16, 24, 42, 0.85);
+  border: 1px solid var(--amber);
+  backdrop-filter: blur(10px);
+}
+
+/* ONLY show on mobile AND when node is selected */
+@media (max-width: 768px) {
+  .mobile-controls.show {
+    display: flex;
+  }
+}
+
+.mobile-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 18px;
+  font-weight: 700;
+
+  padding: 16px 22px;
+  min-width: 64px;
+
+  border-radius: 12px;
+  border: 1px solid var(--panel-edge);
+
+  background: var(--amber);
+  color: var(--hi);
+
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  transition: all 0.15s ease;
+}
+
+.mobile-btn:active {
+  transform: scale(0.95);
+  background: var(--cyan);
+  color: #070a11;
+  border-color: var(--cyan);
+}
+
+.mobile-btn:hover {
+  background: var(--cyan); /* Match hover effect with other buttons */
+  color: #070a11;
+}
+
+.graph-card.animating svg {
+  animation: graphSwap 0.45s cubic-bezier(.2,.8,.2,1);
+}
+
+@keyframes graphSwap {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  45% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+
+  55% {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.howto-backdrop{
+  position:fixed;
+  inset:0;
+
+  background:rgba(0,0,0,.55);
+  backdrop-filter:blur(4px);
+
+  opacity:0;
+  visibility:hidden;
+
+  transition:opacity .25s ease;
+
+  z-index:998;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.howto-backdrop.show{
+  opacity:1;
+  visibility:visible;
+  pointer-events: auto;
+}
+.node.entering {
+  animation: nodeAppear 1s cubic-bezier(.2,.8,.2,1) both;
+}
+
+@keyframes nodeAppear {
+    from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+</style>
+</head>
+<body>
+
+<div class="shell">
+    <header>
+        <div class="title-block">
+          <h1>RIPPLE</h1>
+          <p id="modeTitle">Daily Puzzle · <span id="nodecount">?</span>-node lattice</p>
+        </div>
+        <div style="display:flex; gap:12px; align-items:center;">
+          <div class="top-controls">
+            <button class="top-btn" id="howtoBtn">How to Play</button>
+            <button class="top-btn" id="themeToggle">☀️</button>
+          </div>
+          <div class="mode-toggle" id="modeToggle">
+            <div class="mode-btn active" data-mode="daily">Daily</div>
+            <div class="mode-btn" data-mode="unlimited">Unlimited</div>
+          </div>
+          <div class="header-pill" id="headerPill"><span id="headerInjections">0</span> injections</div>
+        </div>
+      </header>
+  <div class="layout">
+    <div class="card graph-card">
+        <div id="optimalDisplay" style="
+  position:absolute;
+  top:10px;
+  right:12px;
+  font-family:'JetBrains Mono', monospace;
+  font-size:12px;
+  color:var(--mid);
+  background:rgba(16,24,42,0.7);
+  border:1px solid var(--panel-edge);
+  padding:6px 10px;
+  border-radius:10px;
+  backdrop-filter: blur(8px);
+">
+  Optimal Injections: —
+</div>
+      <svg id="svg" viewBox="0 0 600 600">
+        <g id="edges"></g>
+        <g id="nodes"></g>
+      </svg>
+      <div class="mobile-controls" id="mobileControls">
+        <button class="mobile-btn" data-value="1">+1</button>
+        <button class="mobile-btn" data-value="2">+2</button>
+        <button class="mobile-btn" data-value="3">+3</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="card">
+        <p class="section-label">Selected node</p>
+        <div class="selected-readout" id="selreadout">—</div>
+        
+        <p class="section-label" style="margin:16px 0 8px;">Difficulty (New Puzzle)</p>
+        <div class="difficulty-select" id="difficultySelect">
+          <button class="difficulty-btn active" data-diff="easy">
+            <span>Easy</span>
+            <span class="nodes">4 nodes</span>
+          </button>
+          <button class="difficulty-btn" data-diff="medium">
+            <span>Medium</span>
+            <span class="nodes">5-6 nodes</span>
+          </button>
+          <button class="difficulty-btn" data-diff="hard">
+            <span>Hard</span>
+            <span class="nodes">7-9 nodes</span>
+          </button>
+        </div>
+
+        <div style="display:flex; gap:8px; margin-bottom:12px;">
+            <button class="newpuzzle" id="newpuzzle" style="flex:1">↻ New Puzzle</button>
+            <button class="newpuzzle" id="resetCurrent" style="flex:1">⟳ Reset Current</button>
+        </div>
+
+        <p class="energy-hint">Click a node then press <strong>1</strong>, <strong>2</strong>, or <strong>3</strong> to inject energy</p>
+        
+        <div class="message" id="message">Select a node to begin calibration.</div>
+        
+        <p class="section-label" style="margin-bottom:8px;">Legend</p>
+        <div class="legend">
+          <div><span class="swatch" style="background:var(--cyan);box-shadow:0 0 6px var(--cyan-soft)"></span> matched · exact</div>
+          <div><span class="swatch" style="background:var(--amber);box-shadow:0 0 6px var(--amber-soft)"></span> close · off by 1</div>
+          <div><span class="swatch" style="background:var(--coral);box-shadow:0 0 6px var(--coral-soft)"></span> off-target · off by 2+</div>
+          <div><span class="swatch" style="background:var(--violet);border-radius:2px;"></span> target marker on dial</div>
+        </div>
+        
+        <p class="section-label" style="margin-bottom:8px;">Injection log</p>
+        <div class="log" id="log"><div class="empty">No injections yet</div></div>
+        <div class="counter" id="counter">0 injections</div>
+
+        <button id="shareBtn" class="share-btn">Share Today's Result</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal-card">
+    <button class="modal-close" id="modalClose" aria-label="Close">×</button>
+    <div class="modal-icon">✓</div>
+    <h2>Calibrated</h2>
+    <p class="modal-sub">Every node in the lattice matched its target.</p>
+    <div class="modal-stats">
+      <div>
+        <span class="stat-num" id="statInjections">0</span>
+        <span class="stat-label">injections</span>
+      </div>
+      <div>
+        <span class="stat-num" id="statNodes">0</span>
+        <span class="stat-label">nodes</span>
+      </div>
+    </div>
+    <button class="modal-newpuzzle" id="modalNewPuzzle">↻ New puzzle</button>
+  </div>
+</div>
+<div class="howto-backdrop" id="howtoBackdrop"></div>
+<div class="howto-popover" id="howtoPopover">
+    <h3 style="margin:0 0 12px 0; color:var(--cyan);">How to Play RIPPLE</h3>
+    <p><strong>Goal:</strong> Make every node's energy match its target value.</p>
+    <ul style="padding-left:18px; margin:12px 0;">
+      <li>Click a node to select it</li>
+      <li>Press <strong>1</strong>, <strong>2</strong>, or <strong>3</strong> to inject energy</li>
+      <li>Energy ripples outward through connected nodes (stronger when closer)</li>
+      <li>Green = Perfect match</li>
+      <li>Yellow = Off by 1</li>
+      <li>Red = Off by 2+</li>
+    </ul>
+    <p><strong>Daily Mode:</strong> One puzzle per day. Medium difficulty. Updates at 3 AM EST.</p>
+    <button
+  onclick="
+    document.getElementById('howtoPopover').classList.remove('show');
+    document.getElementById('howtoBackdrop').classList.remove('show');
+  "
+  style="
+    margin-top:12px;
+    width:100%;
+    padding:10px;
+    background:var(--cyan);
+    color:#070a11;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:600;
+  "
+>
+  Got it
+</button>
+</div>
+<script src="solver.js"></script>
+<script>
+const MIN_NODES_EASY = 4; const MAX_NODES_EASY = 4;
+const MIN_NODES_MED = 5;  const MAX_NODES_MED = 6;
+const MIN_NODES_HARD = 7; const MAX_NODES_HARD = 9;
+
+let LABELS = [];
+let EDGES = {};
+let POS = {};
+let R_OUTER = 46;
+let R_CORE = 34;
+let CIRC = 2 * Math.PI * R_OUTER;
+
+let target = {}, state = {}, maxScale = 1;
+let selected = null;
+let injections = 0;
+let log = [];
+let alreadySolved = false;
+let currentDifficulty = "medium";
+let currentMode = "daily";
+function updateMobileControlsVisibility() {
+  const el = document.getElementById("mobileControls");
+  if (!el) return;
+
+  const shouldShow = selected && window.innerWidth <= 768;
+  if (shouldShow && !el.classList.contains("show")) {
+    el.classList.add("show");
+  } else if (!shouldShow && el.classList.contains("show")) {
+    el.classList.remove("show");
+  }
+}
+// Seeded random for Daily consistency
+function seededRandom(seed) {
+  let s = seed;
+  return () => {
+    s = Math.sin(s) * 10000;
+    return s - Math.floor(s);
+  };
+}
+
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]] = [arr[j],arr[i]];
+  }
+  return arr;
+}
+function computeOptimalAsync() {
+  if (typeof computeOptimalInjections !== "function") return;
+
+  const labels = LABELS;
+  const edges = EDGES;
+  const tgt = target;
+
+  const token = Symbol(); // prevents race conditions
+  computeOptimalAsync._token = token;
+
+  requestIdleCallback(() => {
+    try {
+      const optimal = computeOptimalInjections(labels, edges, tgt);
+
+      // ignore stale computations
+      if (computeOptimalAsync._token !== token) return;
+      if (labels !== LABELS) return;
+
+      document.getElementById("optimalDisplay").textContent =
+        "Optimal Injections: " + (optimal ?? "?");
+
+    } catch (e) {
+      console.error("solver error:", e);
+      document.getElementById("optimalDisplay").textContent =
+        "Optimal Injections: error";
+    }
+  });
+}
+
+function buildGraphTopology(n){
+  const allLetters = "ABCDEFGHIJKL";
+  const labels = allLetters.slice(0, n).split("");
+  const adj = {};
+  labels.forEach(l => adj[l] = []);
+  const edgeKeys = new Set();
+
+  function addEdge(a,b){
+    const key = [a,b].sort().join("-");
+    if(edgeKeys.has(key)) return false;
+    edgeKeys.add(key);
+    adj[a].push(b);
+    adj[b].push(a);
+    return true;
+  }
+
+  // spanning tree
+  const order = shuffle([...labels]);
+  for(let i=1;i<order.length;i++){
+    const a = order[i];
+    const b = order[Math.floor(Math.random()*i)];
+    addEdge(a,b);
+  }
+
+  // extra edges
+  const extra = Math.max(2, Math.floor(n/3));
+  let added = 0, attempts = 0;
+  while(added < extra && attempts < extra*15){
+    attempts++;
+    const a = labels[Math.floor(Math.random()*n)];
+    const b = labels[Math.floor(Math.random()*n)];
+    if(a === b) continue;
+    if(addEdge(a,b)) added++;
+  }
+
+  return { labels, adj };
+}
+
+function computeLayout(labels){
+  const n = labels.length;
+  const cx = 300, cy = 300;
+  const R = Math.min(235, 125 + n*11);
+  const pos = {};
+  labels.forEach((l,i) => {
+    const ang = (i/n)*Math.PI*2 - Math.PI/2;
+    pos[l] = { x: cx + R*Math.cos(ang), y: cy + R*Math.sin(ang) };
+  });
+  return pos;
+}
+
+function bfsDist(source){
+  const dist = {};
+  LABELS.forEach(l => dist[l] = null);
+  dist[source] = 0;
+  const q = [source];
+  while(q.length){
+    const u = q.shift();
+    for(const v of EDGES[u]){
+      if(dist[v] === null){
+        dist[v] = dist[u] + 1;
+        q.push(v);
+      }
+    }
+  }
+  return dist;
+}
+function bfsParent(source){
+  const dist = {}, parent = {};
+  LABELS.forEach(l => { dist[l] = null; parent[l] = null; });
+  dist[source] = 0;
+  const q = [source];
+  while(q.length){
+    const u = q.shift();
+    for(const v of EDGES[u]){
+      if(dist[v] === null){
+        dist[v] = dist[u] + 1;
+        parent[v] = u;
+        q.push(v);
+      }
+    }
+  }
+  return { dist, parent };
+}
+
+function contribution(value, dist){
+  return Math.max(value - dist, 0);
+}
+
+function applyRipple(obj, node, value){
+  const dist = bfsDist(node);
+  for(const n of LABELS){
+    obj[n] += contribution(value, dist[n]);
+  }
+}
+function animatePuzzleTransition(callback){
+  const graphCard = document.querySelector(".graph-card");
+
+  // freeze rendering (prevents intermediate SVG frames)
+  graphCard.style.visibility = "hidden";
+
+  requestAnimationFrame(() => {
+    callback();
+
+    requestAnimationFrame(() => {
+      graphCard.style.visibility = "visible";
+    });
+  });
+}
+function generatePuzzle(){
+  target = {}; 
+  state = {};
+  
+  // Important: Initialize with 0 first
+  LABELS.forEach(l => { 
+    target[l] = 0; 
+    state[l] = 0; 
+  });
+
+  if (LABELS.length === 0) return; // safety
+
+  let injectionCount;
+  let maxInjectionValue = 3;
+
+  if(currentDifficulty === "easy"){
+    injectionCount = LABELS.length + 2;
+    maxInjectionValue = 2;
+  } else if(currentDifficulty === "medium"){
+    injectionCount = Math.floor(LABELS.length * 1.4) + 3;
+  } else {
+    injectionCount = Math.floor(LABELS.length * 1.8) + 5;
+  }
+
+  // Use a local random to avoid seeding conflicts
+  const localRandom = Math.random;
+
+  for(let i = 0; i < injectionCount; i++){
+    const node = LABELS[Math.floor(localRandom()*LABELS.length)];
+    const val = 1 + Math.floor(localRandom()*maxInjectionValue);
+    applyRipple(target, node, val);
+  }
+
+  maxScale = Math.max(...Object.values(target), 1) * 1.25 || 10;
+  document.getElementById("optimalDisplay").textContent =
+    "Optimal Injections: computing...";
+
+  requestIdleCallback(() => {
+    computeOptimalAsync();
+  });
+}
+
+
+function errorOf(n){ return Math.abs(state[n] - target[n]); }
+function statusOf(n){
+  const e = errorOf(n);
+  if(e === 0) return "good";
+  if(e === 1) return "mid";
+  return "bad";
+}
+function solved(){ return LABELS.every(n => state[n] === target[n]); }
+
+// ---------- DOM ----------
+const svgEdges = document.getElementById("edges");
+const svgNodes = document.getElementById("nodes");
+const svgRoot = document.getElementById("svg");
+
+function buildGraphDOM(){
+    const svgEdges = document.getElementById("edges");
+  const svgNodes = document.getElementById("nodes");
+
+  // HARD RESET: prevent any intermediate rendering of old nodes
+  svgNodes.replaceChildren();
+  svgEdges.replaceChildren();
+
+  // force browser to flush old frame BEFORE adding new nodes
+  void svgNodes.offsetHeight;
+
+  const n = LABELS.length;
+  const R = Math.min(235, 125 + n*11);
+  const chord = 2 * R * Math.sin(Math.PI / n);
+  R_OUTER = Math.max(22, Math.min(48, chord * 0.37));
+  R_CORE = R_OUTER * 0.74;
+  CIRC = 2 * Math.PI * R_OUTER;
+  const scale = R_OUTER / 46;
+
+  const drawn = new Set();
+  for(const a of LABELS){
+    for(const b of EDGES[a]){
+      const key = [a,b].sort().join("-");
+      if(drawn.has(key)) continue;
+      drawn.add(key);
+      const line = document.createElementNS("http://www.w3.org/2000/svg","line");
+      line.setAttribute("class","edge");
+      line.setAttribute("data-key", key);
+      line.setAttribute("x1", POS[a].x); line.setAttribute("y1", POS[a].y);
+      line.setAttribute("x2", POS[b].x); line.setAttribute("y2", POS[b].y);
+      svgEdges.appendChild(line);
+    }
+  }
+
+  for(const l of LABELS){
+    const {x,y} = POS[l];
+    const g = document.createElementNS("http://www.w3.org/2000/svg","g");
+    g.setAttribute("class","node");
+    g.setAttribute("data-id", l);
+    g.setAttribute("transform", `translate(${x},${y})`);
+
+    g.innerHTML = `
+      <circle class="glow" r="${R_OUTER+14}"></circle>
+      <circle class="selection-ring" r="${R_OUTER+9}"></circle>
+      <circle class="track" r="${R_OUTER}"></circle>
+      <circle class="arc" r="${R_OUTER}" stroke-dasharray="${CIRC}" stroke-dashoffset="${CIRC}"></circle>
+      <line class="tick" x1="0" y1="${-R_OUTER+6}" x2="0" y2="${-R_OUTER-6}"></line>
+      <circle class="core" r="${R_CORE}"></circle>
+      <circle class="flash" r="${R_CORE}"></circle>
+      <text class="label" y="${-R_OUTER-14}" style="font-size:${Math.max(10,12*scale)}px">${l}</text>
+      <text class="value" y="${7*scale}" style="font-size:${Math.max(14,25*scale)}px">0</text>
+    <text class="target" y="${25*scale}" style="font-size:${Math.max(11,13*scale)}px; font-weight:700">0</text>    `;
+    g.addEventListener("click", () => selectNode(l));
+    svgNodes.appendChild(g);
+  }
+  document.querySelectorAll(".node").forEach((node, i) => {
+  node.classList.add("entering");
+
+  node.style.animationDelay = `${i * 120}ms`;
+
+  node.addEventListener("animationend", () => {
+    node.classList.remove("entering");
+  }, { once:true });
+});
+const edgeEls = Array.from(document.querySelectorAll(".edge"));
+
+// sort edges top → bottom using midpoint Y
+edgeEls.sort((a, b) => {
+  const ay = (parseFloat(a.getAttribute("y1")) + parseFloat(a.getAttribute("y2"))) / 2;
+  const by = (parseFloat(b.getAttribute("y1")) + parseFloat(b.getAttribute("y2"))) / 2;
+  return ay - by;
+});
+
+// stagger reveal
+edgeEls.forEach((edge, i) => {
+  setTimeout(() => {
+    edge.classList.add("reveal");
+  }, i * 100); // tweak speed here
+});
+}
+
+function angleToPoint(fraction, radius){
+  const ang = fraction * Math.PI * 2 - Math.PI/2;
+  return { x: radius*Math.cos(ang), y: radius*Math.sin(ang) };
+}
+
+function updateNodeVisual(n){
+  const g = svgNodes.querySelector(`[data-id="${n}"]`);
+  if(!g) return;
+  const status = statusOf(n);
+  g.setAttribute("data-status", status);
+
+  const fraction = Math.max(0, Math.min(1, state[n] / maxScale));
+  g.querySelector(".arc").setAttribute("stroke-dashoffset", CIRC - fraction*CIRC);
+
+  const tFraction = Math.max(0, Math.min(1, target[n] / maxScale));
+  const p1 = angleToPoint(tFraction, R_OUTER-7);
+  const p2 = angleToPoint(tFraction, R_OUTER+7);
+  const tick = g.querySelector(".tick");
+  tick.setAttribute("x1", p1.x); tick.setAttribute("y1", p1.y);
+  tick.setAttribute("x2", p2.x); tick.setAttribute("y2", p2.y);
+
+  g.querySelector(".value").textContent = state[n];
+  g.querySelector(".target").textContent = target[n];
+}
+
+function updateAll(){
+  requestAnimationFrame(() => {
+    LABELS.forEach(updateNodeVisual);
+  });
+}
+
+function showCongrats(){
+  document.getElementById("statInjections").textContent = injections;
+  document.getElementById("statNodes").textContent = LABELS.length;
+  
+  const modalNewBtn = document.getElementById("modalNewPuzzle");
+  if (currentMode === "daily") {
+    modalNewBtn.textContent = "✅ Daily Complete";
+    modalNewBtn.style.pointerEvents = "none";
+    modalNewBtn.style.opacity = "0.6";
+  } else {
+    modalNewBtn.textContent = "↻ New Puzzle";
+    modalNewBtn.style.pointerEvents = "auto";
+    modalNewBtn.style.opacity = "1";
+  }
+
+  document.getElementById("modalBackdrop").classList.add("show");
+}
+
+function hideCongrats(){
+  document.getElementById("modalBackdrop").classList.remove("show");
+}
+function getTodayStr(){
+  const now = new Date();
+  const today = new Date(now.getTime() - 3*60*60*1000); // 3 AM EST
+  return today.toISOString().slice(0,10);
+}
+function selectNode(n) {
+  selected = n;
+
+  // Clear all selections first
+  document.querySelectorAll(".node").forEach(g => {
+    g.classList.remove("selected");
+  });
+
+  // Add to the new one
+  const nodeEl = document.querySelector(`.node[data-id="${n}"]`);
+  if (nodeEl) nodeEl.classList.add("selected");
+
+  document.getElementById("selreadout").textContent = n;
+  document.getElementById("selreadout").classList.add("armed");
+  setMessage(`Node ${n} selected. Press 1, 2, or 3 to inject energy.`);
+
+  updateMobileControlsVisibility();
+}
+
+// Hide mobile controls when no node is selected
+function deselectNode() {
+  selected = null;
+
+  document.querySelectorAll(".node").forEach(g => {
+    g.classList.remove("selected");
+  });
+
+  document.getElementById("selreadout").textContent = "—";
+  document.getElementById("selreadout").classList.remove("armed");
+  setMessage("Select a node to begin calibration.");
+
+  updateMobileControlsVisibility();
+}
+
+function setMessage(msg){ document.getElementById("message").textContent = msg; }
+
+function flashNode(n){
+  const g = svgNodes.querySelector(`[data-id="${n}"]`);
+  if(!g) return;
+  const flash = g.querySelector(".flash");
+  flash.classList.remove("go");
+  void flash.offsetWidth;
+  flash.classList.add("go");
+}
+
+function flashEdge(a,b){
+  const key = [a,b].sort().join("-");
+  const line = svgEdges.querySelector(`[data-key="${key}"]`);
+  if(!line) return;
+  line.classList.add("active");
+  setTimeout(() => line.classList.remove("active"), 230);
+}
+
+function spawnPulseDot(a, b, duration){
+  const dot = document.createElementNS("http://www.w3.org/2000/svg","circle");
+  dot.setAttribute("class","pulse-dot");
+  dot.setAttribute("r", Math.max(4, R_OUTER*0.13));
+  dot.setAttribute("cx", POS[a].x);
+  dot.setAttribute("cy", POS[a].y);
+  dot.style.transitionDuration = duration + "ms";
+  svgRoot.appendChild(dot);
+  requestAnimationFrame(() => {
+    dot.setAttribute("cx", POS[b].x);
+    dot.setAttribute("cy", POS[b].y);
+  });
+  setTimeout(() => dot.remove(), duration + 40);
+}
+
+function logInjection(node, value){
+  injections++;
+  log.unshift({node, value});
+  if(log.length > 6) log.pop();
+  const el = document.getElementById("log");
+  el.innerHTML = log.map(item =>
+    `<div><span class="n">${item.node}</span><span>+${item.value} energy</span></div>`
+  ).join("");
+  document.getElementById("counter").textContent = injections + (injections === 1 ? " injection" : " injections");
+  document.getElementById("headerInjections").textContent = injections;
+}
+
+function inject(node, value){
+  const {dist, parent} = bfsParent(node);
+  const reach = LABELS.filter(n => dist[n] !== null && dist[n] <= value);
+  const maxDist = Math.max(...reach.map(n => dist[n] || 0));
+
+  for(const n of reach){
+    const d = dist[n];
+    setTimeout(() => {
+      state[n] += contribution(value, d);
+      updateNodeVisual(n);
+      flashNode(n);
+      if(d > 0) flashEdge(parent[n], n);
+    }, d * 230);
+    if(d > 0){
+      setTimeout(() => spawnPulseDot(parent[n], n, 230), (d-1) * 230);
+    }
+  }
+
+  logInjection(node, value);
+
+  setTimeout(() => {
+    if(solved() && !alreadySolved){
+      alreadySolved = true;
+      setMessage("Calibrated — every node matches its target.");
+      showCongrats();
+    } else if(!solved()){
+      setMessage(`Injected ${value} energy at node ${node}.`);
+    }
+  }, maxDist * 230 + 80);
+}
+
+// Mode Toggle
+// ==================== MODE & DIFFICULTY HANDLING ====================
+function updateUILockState(){
+  const isDaily = currentMode === "daily";
+  
+  // Difficulty buttons
+  document.querySelectorAll('.difficulty-btn').forEach(b => {
+    const isMedium = b.dataset.diff === "medium";
+    b.style.pointerEvents = isDaily ? "none" : "auto";
+    b.style.opacity = isDaily ? "0.5" : "1";
+    
+    // Force Medium as active in Daily mode
+    if (isDaily) {
+      if (isMedium) b.classList.add('active');
+      else b.classList.remove('active');
+    }
+  });
+
+  // New Puzzle button
+  const newPuzzleBtn = document.getElementById("newpuzzle");
+  if (newPuzzleBtn) {
+    newPuzzleBtn.style.pointerEvents = isDaily ? "none" : "auto";
+    newPuzzleBtn.style.opacity = isDaily ? "0.5" : "1";
+    newPuzzleBtn.textContent = isDaily ? "↻ Daily Puzzle (Locked)" : "↻ New Puzzle";
+  }
+}
+// Save the current game state to localStorage
+function saveGameState() {
+  const gameState = {
+    target,
+    state,
+    injections,
+    log,
+    alreadySolved,
+    currentDifficulty,
+    currentMode,
+    LABELS,
+    EDGES,
+    POS,
+    dailyPuzzleCache,
+  };
+  localStorage.setItem('gameState', JSON.stringify(gameState));
+}
+
+// Load the saved game state from localStorage
+function loadGameState() {
+  const savedState = localStorage.getItem('gameState');
+  if (savedState) {
+    const gameState = JSON.parse(savedState);
+    target = gameState.target;
+    state = gameState.state;
+    injections = gameState.injections;
+    log = gameState.log;
+    alreadySolved = gameState.alreadySolved;
+    currentDifficulty = gameState.currentDifficulty;
+    currentMode = gameState.currentMode;
+    LABELS = gameState.LABELS;
+    EDGES = gameState.EDGES;
+    POS = gameState.POS;
+    dailyPuzzleCache = gameState.dailyPuzzleCache;
+
+    requestAnimationFrame(() => {
+    buildGraphDOM();
+    requestAnimationFrame(() => {
+        updateAll();
+        setMessage("Game progress loaded!");
+    });
+    });
+    updateMobileControlsVisibility();
+  }
+}
+
+// Call saveGameState whenever the game state changes
+document.addEventListener("keydown", saveGameState);
+document.getElementById("resetCurrent").addEventListener("click", saveGameState);
+
+// Load the saved game state on page load
+window.addEventListener("load", loadGameState);
+
+// Mode Toggle
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentMode = btn.dataset.mode;
+    
+    updateUILockState();
+
+    animatePuzzleTransition(resetGame);
+  });
+});
+// Difficulty buttons
+document.querySelectorAll('.difficulty-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (currentMode === "daily") return; // locked
+    document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentDifficulty = btn.dataset.diff;
+  });
+});
+document.getElementById("newpuzzle").addEventListener("click", () => {
+  if (currentMode === "daily") {
+    setMessage("Daily puzzle is fixed. It updates at 3 AM EST.");
+    return;
+  }
+  saveGameState();
+  animatePuzzleTransition(resetGame);
+});
+document.getElementById("resetCurrent")
+  .addEventListener("click", () => {
+    resetCurrentPuzzle();
+  });
+document.getElementById("modalNewPuzzle").addEventListener("click", () => {
+  hideCongrats();
+  if (currentMode === "daily") {
+    setMessage("Daily puzzle completed! Come back tomorrow at 3 AM EST for the next one.");
+    return;
+  }
+  animatePuzzleTransition(resetGame);
+});document.getElementById("modalClose").addEventListener("click", hideCongrats);
+document.getElementById("modalBackdrop").addEventListener("click", (e) => {
+  if(e.target.id === "modalBackdrop") hideCongrats();
+});
+
+document.getElementById("shareBtn").addEventListener("click", () => {
+  const date = new Date().toISOString().slice(0,10);
+  const text = `⚡️ RIPPLE ${date}\n${currentDifficulty.toUpperCase()} • ${LABELS.length} nodes • ${injections} injections\nSolved!`;
+  navigator.clipboard.writeText(text).then(() => alert("✅ Copied to clipboard!"));
+});
+
+document.addEventListener("keydown", (e) => {
+  if(e.key.toLowerCase() === "r") animatePuzzleTransition(resetGame);
+  if(e.key === "Escape") hideCongrats();
+  if(["1","2","3"].includes(e.key) && selected) inject(selected, parseInt(e.key));
+});
+
+function resetCurrentPuzzle(){
+  // Reset player state
+  LABELS.forEach(l => {
+    state[l] = 0;
+  });
+  
+  deselectNode();
+  injections = 0;
+  log = [];
+  alreadySolved = false;
+  hideCongrats();
+
+  // === FIX: Clear visual selection ===
+  document.querySelectorAll(".node").forEach(g => {
+    g.classList.remove("selected");
+  });
+
+  document.getElementById("headerInjections").textContent = "0";
+  document.getElementById("selreadout").textContent = "—";
+  document.getElementById("selreadout").classList.remove("armed");
+  document.getElementById("log").innerHTML = `<div class="empty">No injections yet</div>`;
+  document.getElementById("counter").textContent = "0 injections";
+  
+  setMessage(`Puzzle reset — same targets. Select a node to begin again.`);
+  updateAll();
+  updateMobileControlsVisibility();
+}
+
+
+// Add this variable near the top with other `let` declarations
+let dailyPuzzleCache = null;
+
+function resetGame(){
+  localStorage.removeItem('gameState');
+
+  let n;
+  let randFunc = Math.random;
+
+  if(currentMode === "daily"){
+
+    if (dailyPuzzleCache && dailyPuzzleCache.dateStr === getTodayStr()) {
+
+      // restore cache
+      n = dailyPuzzleCache.n;
+      LABELS = [...dailyPuzzleCache.LABELS];
+      EDGES = JSON.parse(JSON.stringify(dailyPuzzleCache.EDGES));
+      POS = JSON.parse(JSON.stringify(dailyPuzzleCache.POS));
+
+      target = {...dailyPuzzleCache.target};
+
+    } else {
+
+      const now = new Date();
+      const today = new Date(now.getTime() - 3*60*60*1000);
+      const dateStr = today.toISOString().slice(0,10);
+      const seed = dateStr.split('-').reduce((sum, p) => sum + parseInt(p), 0);
+
+      randFunc = seededRandom(seed);
+
+      n = 5 + Math.floor(randFunc() * 2);
+      currentDifficulty = "medium";
+
+      const topo = buildGraphTopology(n, randFunc);
+      LABELS = topo.labels;
+      EDGES = topo.adj;
+      POS = computeLayout(LABELS);
+
+      buildGraphDOM();
+      generatePuzzle();
+
+      dailyPuzzleCache = {
+        dateStr: getTodayStr(),
+        n,
+        LABELS: [...LABELS],
+        EDGES: JSON.parse(JSON.stringify(EDGES)),
+        POS: JSON.parse(JSON.stringify(POS)),
+        target: {...target}
+      };
+
+      computeOptimalAsync();
+    }
+
+  } else {
+
+    const now = new Date();
+    const todayStr = new Date(now.getTime() - 3*60*60*1000).toISOString().slice(0,10);
+
+    if (dailyPuzzleCache && dailyPuzzleCache.dateStr !== todayStr) {
+      dailyPuzzleCache = null;
+    }
+
+    let minNodes = currentDifficulty === "easy" ? MIN_NODES_EASY :
+                   currentDifficulty === "medium" ? MIN_NODES_MED :
+                   MIN_NODES_HARD;
+
+    let maxNodes = currentDifficulty === "easy" ? MAX_NODES_EASY :
+                   currentDifficulty === "medium" ? MAX_NODES_MED :
+                   MAX_NODES_HARD;
+
+    n = minNodes + Math.floor(Math.random() * (maxNodes - minNodes + 1));
+
+    const topo = buildGraphTopology(n, randFunc);
+    LABELS = topo.labels;
+    EDGES = topo.adj;
+    POS = computeLayout(LABELS);
+
+    buildGraphDOM();
+    generatePuzzle();
+
+    computeOptimalAsync();
+  }
+
+  // -------------------------
+  // ALWAYS RESET RUNTIME STATE
+  // -------------------------
+
+  state = {};
+  LABELS.forEach(l => state[l] = 0);
+
+  maxScale = Math.max(...Object.values(target), 1) * 1.25 || 10;
+
+  deselectNode();
+  injections = 0;
+  log = [];
+  alreadySolved = false;
+  hideCongrats();
+
+  const nodeCountEl = document.getElementById("nodecount");
+  if (nodeCountEl) nodeCountEl.textContent = n;
+
+  document.getElementById("headerInjections").textContent = "0";
+  document.getElementById("selreadout").textContent = "—";
+  document.getElementById("selreadout").classList.remove("armed");
+  document.getElementById("log").innerHTML = `<div class="empty">No injections yet</div>`;
+  document.getElementById("counter").textContent = "0 injections";
+
+  const modeText = currentMode === "daily" ? "Daily Puzzle" : "Unlimited Mode";
+  document.getElementById("modeTitle").textContent =
+    `${modeText} · ${n}-node lattice`;
+
+  setMessage(`${currentMode.toUpperCase()} • ${currentDifficulty} • ${n} nodes. Select a node to begin.`);
+
+  updateAll();
+  updateMobileControlsVisibility();
+}
+
+updateUILockState();
+function toggleTheme(){
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  document.documentElement.setAttribute('data-theme', isLight ? 'dark' : 'light');
+  localStorage.setItem('theme', isLight ? 'dark' : 'light');
+  document.getElementById('themeToggle').textContent = isLight ? '☀️' : '🌙';
+}
+
+// Theme initialization
+if (localStorage.getItem('theme') === 'light') {
+  document.documentElement.setAttribute('data-theme', 'light');
+  document.getElementById('themeToggle').textContent = '🌙';
+} else {
+  document.getElementById('themeToggle').textContent = '☀️';
+}
+
+document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+document.getElementById('howtoBtn').addEventListener('click', () => {
+  const popover = document.getElementById('howtoPopover');
+  const backdrop = document.getElementById('howtoBackdrop');
+
+  popover.classList.add('show');
+  backdrop.classList.add('show');
+});
+
+// Close popover when clicking outside
+document.addEventListener('click', (e) => {
+  const popover = document.getElementById('howtoPopover');
+  const backdrop = document.getElementById('howtoBackdrop');
+
+  if (
+    !e.target.closest('#howtoBtn') &&
+    !e.target.closest('.howto-popover')
+  ) {
+    popover.classList.remove('show');
+    backdrop.classList.remove('show');
+  }
+});
+document.querySelectorAll(".mobile-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const value = parseInt(btn.dataset.value, 10);
+    if (selected) {
+      inject(selected, value);
+    }
+  });
+});
+window.addEventListener("resize", updateMobileControlsVisibility);
+window.addEventListener("orientationchange", updateMobileControlsVisibility);
+window.addEventListener('load', () => {
+  const popover = document.getElementById('howtoPopover');
+  const backdrop = document.getElementById('howtoBackdrop');
+
+  popover.classList.add('show');
+  backdrop.classList.add('show');
+});
+resetGame();
+</script>
+</body>
+</html>
