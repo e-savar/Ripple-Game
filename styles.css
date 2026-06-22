@@ -758,3 +758,133 @@ svg#svg {
   background: rgba(240, 240, 240, 0.9); /* Background for light mode */
   border: 1px solid var(--panel-edge); /* Border for light mode */
 }
+/* =========================
+   WORDLE-STYLE TUTORIAL
+   ========================= */
+
+   .tutorial-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+  
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  
+    pointer-events: none;
+  }
+  
+  .tutorial-overlay.hidden {
+    display: none;
+  }
+  .tutorial-box {
+    width: min(420px, 90vw);
+    background: var(--panel);
+    border: 1px solid var(--panel-edge);
+    border-radius: 14px;
+    padding: 18px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  }
+  
+  .tutorial-highlight {
+    outline: 3px solid var(--cyan);
+    box-shadow: 0 0 25px var(--cyan-soft);
+    border-radius: 10px;
+    position: relative;
+    z-index: 10000;
+  }
+  .tutorial-card {
+    position: relative;
+  
+    width: min(520px, calc(100vw - 32px));
+  
+    margin-bottom: 28px;
+  
+    background: var(--panel);
+    border: 1px solid var(--cyan);
+  
+    border-radius: 18px;
+  
+    padding: 22px;
+  
+    pointer-events: auto;
+  
+    box-shadow:
+      0 20px 60px rgba(0,0,0,.45);
+  
+    animation: tutorialSlideUp .35s cubic-bezier(.2,.8,.2,1);
+  }
+  @keyframes tutorialSlideUp {
+    from {
+      opacity: 0;
+      transform: translateY(40px);
+    }
+  
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .graph-card.tutorial-focus {
+    position: relative;
+    z-index: 2100;
+  }
+
+  .tutorial-overlay.hidden{
+    display:none;
+  }
+  
+  /* Graph stays bright */
+.graph-card.tutorial-focus {
+  position: relative;
+  z-index: 2100;
+
+  box-shadow:
+    0 0 0 2px var(--cyan),
+    0 0 40px rgba(86,224,196,.35);
+
+  filter: brightness(1.15);
+}
+
+/* Tutorial card at bottom */
+.tutorial-card {
+  position: fixed;
+
+  left: 50%;
+  bottom: 24px;
+
+  transform: translateX(-50%);
+
+  width: min(520px, calc(100vw - 24px));
+
+  background: var(--panel);
+  border: 1px solid var(--cyan);
+  border-radius: 16px;
+
+  padding: 18px;
+
+  z-index: 2200;
+
+  box-shadow: 0 20px 60px rgba(0,0,0,.5);
+}
+
+@media (max-width:768px) {
+  .tutorial-card {
+    width: calc(100vw - 16px);
+    bottom: 12px;
+  }
+}
+  
+  .graph-card.tutorial-focus::after{
+    content:"";
+    position:absolute;
+    inset:-8px;
+  
+    border-radius:20px;
+  
+    box-shadow:
+      0 0 0 9999px rgba(0,0,0,.65),
+      0 0 30px rgba(86,224,196,.45);
+  
+    pointer-events:none;
+  }
