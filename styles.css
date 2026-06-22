@@ -888,3 +888,144 @@ svg#svg {
   
     pointer-events:none;
   }
+  #newPuzzleBtn {
+    background: var(--amber);
+    color: var(--hi);
+    border: none;
+    border-radius: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    cursor: pointer;
+    opacity: 1;
+    pointer-events: auto;
+  }
+  
+  #newPuzzleBtn[disabled] {
+    background: var(--dim);
+    color: var(--mid);
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+  .new-puzzle-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease;
+    z-index: 998;
+    pointer-events: none;
+  }
+  
+  .new-puzzle-backdrop.show {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+  
+  .new-puzzle-popover {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--panel);
+    border: 1px solid var(--cyan);
+    border-radius: 16px;
+    padding: 24px;
+    max-width: 420px;
+    width: calc(100% - 32px);
+    z-index: 999;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+  }
+  .reset-btn {
+    margin-top: 12px;
+    width: 80%;
+    padding: 12px;
+    background: var(--amber);
+    color: var(--hi);
+    border: none;
+    border-radius: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .difficulty-display {
+    font-size: 16px;
+    font-weight: bold;
+    color: var(--hi);
+    text-align: center;
+    margin-bottom: 12px;
+  }
+  
+  .energy-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+  }
+  
+  .energy-btn {
+    padding: 16px 24px;
+    font-size: 18px;
+    font-weight: bold;
+    background: var(--amber);
+    color: var(--hi);
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .energy-btn:disabled {
+    background: var(--dim);
+    color: var(--mid);
+    cursor: not-allowed;
+  }
+  
+  .energy-btn:hover:not(:disabled) {
+    background: var(--cyan);
+    color: #070a11;
+  }
+  .puzzle-details {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-size: 14px;
+    color: var(--mid);
+  }
+  
+  .puzzle-details li {
+    margin-bottom: 8px;
+  }
+  
+  .puzzle-details span {
+    font-weight: bold;
+    color: var(--hi);
+  }
+  .create-btn, .close-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--cyan);
+    color: #070a11;
+    border: none;
+    border-radius: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background 0.2s ease;
+  }
+  
+  .create-btn:hover, .close-btn:hover {
+    background: var(--amber);
+  }
+  
+  .close-btn {
+    background: var(--panel);
+    color: var(--mid);
+    border: 1px solid var(--panel-edge);
+  }
+  
+  .close-btn:hover {
+    background: rgba(240, 240, 240, 0.9);
+  }
