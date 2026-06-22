@@ -16,6 +16,8 @@
   --coral:#ff7a8a;
   --coral-soft:rgba(255,122,138,0.16);
   --violet:#a99bff;
+  --violet-soft: rgba(169, 155, 255, 0.16);
+  --cyan-border: rgba(86,224,196,0.4);
 }
 
 /* Light mode override */
@@ -114,7 +116,7 @@ header{
     transform .2s ease;
 }
 .mode-btn.active {
-  background: var(--cyan);
+  background: var(--amber);
   color: #070a11;
   font-weight: 600;
   transform:translateY(-2px);
@@ -150,13 +152,13 @@ header{
   position:relative;
   width:100%; max-width:360px;
   background:var(--panel);
-  border:1px solid rgba(86,224,196,0.35);
+  border:1px solid var(--amber-soft);
   border-radius:20px;
   padding:34px 32px 28px;
   text-align:center;
   transform:scale(0.92) translateY(6px);
   transition:transform 0.25s cubic-bezier(.2,.8,.2,1);
-  box-shadow:0 0 70px rgba(86,224,196,0.14);
+  box-shadow:0 0 70px var(--amber-soft);
 }
 .modal-backdrop.show .modal-card{ transform:scale(1) translateY(0); }
 
@@ -172,9 +174,9 @@ header{
 .modal-icon{
   width:52px; height:52px; margin:0 auto 16px;
   border-radius:50%;
-  background:var(--cyan-soft);
-  border:1px solid rgba(86,224,196,0.4);
-  color:var(--cyan);
+  background:var(--amber-soft);
+  border:1px solid var(--amber-soft);
+  color:var(--amber);
   display:flex; align-items:center; justify-content:center;
   font-size:24px;
 }
@@ -202,9 +204,9 @@ header{
   font-size:12px; letter-spacing:0.06em; text-transform:uppercase;
   padding:13px 0;
   border-radius:10px;
-  border:1px solid rgba(86,224,196,0.4);
+  border:1px solid var(--amber-soft);
   background:rgba(86,224,196,0.08);
-  color:var(--cyan);
+  color:var(--amber);
   cursor:pointer;
   transition:background 0.2s;
 }
@@ -374,8 +376,8 @@ header{
 }
 
 .difficulty-btn.active{
-  border-color:var(--cyan);
-  color:var(--cyan);
+  border-color:var(--amber);
+  color:var(--amber);
   background:rgba(86,224,196,0.12);
 }
 
@@ -441,7 +443,7 @@ header{
 .share-btn {
   width: 100%;
   padding: 12px;
-  background: var(--cyan);
+  background: var(--amber);
   color: #070a11;
   border: none;
   border-radius: 10px;
@@ -469,9 +471,9 @@ header{
 }
 
 .top-btn:hover {
-  background: var(--cyan);
+  background: var(--violet);
   color: #070a11;
-  border-color: var(--cyan);
+  border-color: var(--violet);
 }
 
 .howto-popover {
@@ -482,7 +484,7 @@ header{
   transform: translate(-50%, -50%) scale(.8);
 
   background: var(--panel);
-  border: 1px solid var(--cyan);
+  border: 1px solid var(--amber);
   border-radius: 16px;
 
   padding: 24px;
@@ -670,13 +672,13 @@ svg#svg {
 
 .mobile-btn:active {
   transform: scale(0.95);
-  background: var(--cyan);
+  background: var(--amber);
   color: #070a11;
-  border-color: var(--cyan);
+  border-color: var(--amber);
 }
 
 .mobile-btn:hover {
-  background: var(--cyan); /* Match hover effect with other buttons */
+  background: var(--violet); /* Match hover effect with other buttons */
   color: #070a11;
 }
 
@@ -740,16 +742,25 @@ svg#svg {
   }
 }/* Default (Dark Mode) */
 #optimalDisplay {
-  position: absolute;
-  top: 10px;
-  right: 12px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  color: var(--amber);
+  font-size: clamp(10px, 1.2vw, 12px);
+  color: var(--coral);
   background: rgba(10, 14, 24, 0.92);
   border: 1px solid var(--panel-edge);
   padding: 6px 10px;
   border-radius: 10px;
+  white-space: nowrap;
+}
+#optimalDisplayContainer {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+}
+@media (max-width: 768px) {
+  #optimalDisplayContainer {
+    top: 6px;
+    right: 8px;
+  }
 }
 
 /* Light Mode Override */
@@ -887,4 +898,149 @@ svg#svg {
       0 0 30px rgba(86,224,196,.45);
   
     pointer-events:none;
+  }
+  #newPuzzleBtn {
+    background: var(--amber);
+    color: var(--hi);
+    border: none;
+    border-radius: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    cursor: pointer;
+    opacity: 1;
+    pointer-events: auto;
+  }
+  
+  #newPuzzleBtn[disabled] {
+    background: var(--dim);
+    color: var(--mid);
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+  .new-puzzle-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease;
+    z-index: 998;
+    pointer-events: none;
+  }
+  
+  .new-puzzle-backdrop.show {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+  
+  .new-puzzle-popover {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--panel);
+    border: 1px solid var(--amber);
+    border-radius: 16px;
+    padding: 24px;
+    max-width: 420px;
+    width: calc(100% - 32px);
+    z-index: 999;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+  }
+  .reset-btn {
+    margin-top: 9px;
+    width: 100%;
+    padding: 9px;
+    background: var(--violet);
+    color: var(--hi);
+    border: none;
+    border-radius: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  [data-theme="dark"] .reset-btn {
+    color: var(--hi); /* Use a darker color for the font in light mode */
+  }
+  .difficulty-display {
+    font-size: 16px;
+    font-weight: bold;
+    color: var(--hi);
+    text-align: center;
+    margin-bottom: 12px;
+  }
+  
+  .energy-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+  }
+  
+  .energy-btn {
+    padding: 16px 24px;
+    font-size: 18px;
+    font-weight: bold;
+    background: var(--amber);
+    color: var(--hi);
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .energy-btn:disabled {
+    background: var(--dim);
+    color: var(--mid);
+    cursor: not-allowed;
+  }
+  
+  .energy-btn:hover:not(:disabled) {
+    background: var(--violet);
+    color: #070a11;
+  }
+  .puzzle-details {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-size: 14px;
+    color: var(--mid);
+  }
+  
+  .puzzle-details li {
+    margin-bottom: 8px;
+  }
+  
+  .puzzle-details span {
+    font-weight: bold;
+    color: var(--hi);
+  }
+  .create-btn, .close-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--amber);
+    color: #070a11;
+    border: none;
+    border-radius: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background 0.2s ease;
+  }
+  
+  .create-btn:hover, .close-btn:hover {
+    background: var(--amber);
+  }
+  
+  .close-btn {
+    background: var(--panel);
+    color: var(--mid);
+    border: 1px solid var(--panel-edge);
+  }
+  
+  .close-btn:hover {
+    background: rgba(240, 240, 240, 0.9);
   }

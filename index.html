@@ -26,6 +26,7 @@
         <div style="display:flex; gap:12px; align-items:center;">
           <div class="top-controls">
             <button class="top-btn" id="howtoBtn">How to Play</button>
+            <button class="top-btn" id="newPuzzleBtn" disabled>New Puzzle</button>
             <button class="top-btn" id="themeToggle">☀️</button>
           </div>
           <div class="mode-toggle" id="modeToggle">
@@ -37,9 +38,13 @@
       </header>
   <div class="layout">
     <div class="card graph-card">
+      <div id="optimalDisplayContainer">
         <div id="optimalDisplay">
           Optimal Injections: —
         </div>
+        <button class="reset-btn" id="resetCurrent">Reset Puzzle</button>
+      </div>
+        
       <svg id="svg" viewBox="0 0 600 600">
         <g id="edges"></g>
         <g id="nodes"></g>
@@ -53,45 +58,14 @@
 
     <div class="panel">
       <div class="card">
-        <p class="section-label">Selected node</p>
-        <div class="selected-readout" id="selreadout">—</div>
-        
-        <p class="section-label" style="margin:16px 0 8px;">Difficulty (New Puzzle)</p>
-        <div class="difficulty-select" id="difficultySelect">
-          <button class="difficulty-btn active" data-diff="easy">
-            <span>Easy</span>
-            <span class="nodes">4 nodes</span>
-          </button>
-          <button class="difficulty-btn" data-diff="medium">
-            <span>Medium</span>
-            <span class="nodes">5-6 nodes</span>
-          </button>
-          <button class="difficulty-btn" data-diff="hard">
-            <span>Hard</span>
-            <span class="nodes">7-9 nodes</span>
-          </button>
-        </div>
-
-        <div style="display:flex; gap:8px; margin-bottom:12px;">
-            <button class="newpuzzle" id="newpuzzle" style="flex:1">↻ New Puzzle</button>
-            <button class="newpuzzle" id="resetCurrent" style="flex:1">⟳ Reset Current</button>
-        </div>
-
-        <p class="energy-hint">Click a node then press <strong>1</strong>, <strong>2</strong>, or <strong>3</strong> to inject energy</p>
-        
-        <div class="message" id="message">Select a node to begin calibration.</div>
-        
-        <p class="section-label" style="margin-bottom:8px;">Legend</p>
-        <div class="legend">
-          <div><span class="swatch" style="background:var(--cyan);box-shadow:0 0 6px var(--cyan-soft)"></span> matched · exact</div>
-          <div><span class="swatch" style="background:var(--amber);box-shadow:0 0 6px var(--amber-soft)"></span> close · off by 1</div>
-          <div><span class="swatch" style="background:var(--coral);box-shadow:0 0 6px var(--coral-soft)"></span> off-target · off by 2+</div>
-          <div><span class="swatch" style="background:var(--violet);border-radius:2px;"></span> target marker on dial</div>
-        </div>
-        
-        <p class="section-label" style="margin-bottom:8px;">Injection log</p>
-        <div class="log" id="log"><div class="empty">No injections yet</div></div>
-        <div class="counter" id="counter">0 injections</div>
+        <p class="section-label">Difficulty</p>
+        <div class="difficulty-display" id="difficultyDisplay">Medium</div>
+        <p class="section-label" style="margin:16px 0 8px;">Puzzle Details</p>
+        <ul class="puzzle-details">
+          <li>Nodes: <span id="nodeCount">?</span></li>
+          <li>Injections: <span id="injectionCount">0</span></li>
+          <li>Mode: <span id="currentMode">Daily</span></li>
+        </ul>
       </div>
     </div>
   </div>
@@ -119,7 +93,7 @@
 </div>
 <div class="howto-backdrop" id="howtoBackdrop"></div>
 <div class="howto-popover" id="howtoPopover">
-    <h3 style="margin:0 0 12px 0; color:var(--cyan);">How to Play RIPPLE</h3>
+    <h3 style="margin:0 0 12px 0; color:var(--amber);">How to Play RIPPLE</h3>
     <p><strong>Goal:</strong> Make every node's energy match its target value.</p>
     <ul style="padding-left:18px; margin:12px 0;">
       <li>Click a node to select it</li>
@@ -139,7 +113,7 @@
     margin-top:12px;
     width:100%;
     padding:10px;
-    background:var(--cyan);
+    background:var(--amber);
     color:#070a11;
     border:none;
     border-radius:8px;
@@ -149,6 +123,19 @@
 >
   Got it
 </button>
+</div>
+<div class="new-puzzle-backdrop" id="newPuzzleBackdrop">
+  <div class="new-puzzle-popover" id="newPuzzlePopover">
+    <h3>Create a New Puzzle</h3>
+    <p>Select difficulty:</p>
+    <div class="difficulty-select">
+      <button class="difficulty-btn" data-diff="easy">Easy (4 Nodes)</button>
+      <button class="difficulty-btn" data-diff="medium">Medium (5-6 Nodes)</button>
+      <button class="difficulty-btn" data-diff="hard">Hard (7-9 Nodes)</button>
+    </div>
+    <button class="create-btn" id="createNewPuzzleBtn">Create Puzzle</button>
+    <button class="close-btn" id="closeNewPuzzleBtn">Cancel</button>
+  </div>
 </div>
 <script src="solver.js"></script>
 <script>
@@ -182,7 +169,6 @@ let CIRC = 2 * Math.PI * R_OUTER;
 let target = {}, state = {}, maxScale = 1;
 let selected = null;
 let injections = 0;
-let log = [];
 let alreadySolved = false;
 let tutorialActive = false;
 let tutorialStep = 0;
@@ -562,7 +548,7 @@ function showCongrats(){
   modalShareBtn.style.display = currentMode === "daily" ? "block" : "none";
   const modalNewBtn = document.getElementById("modalNewPuzzle");
   if (currentMode === "daily") {
-    modalNewBtn.textContent = "✅ Daily Complete";
+    modalNewBtn.textContent = "Daily Complete";
     modalNewBtn.style.pointerEvents = "none";
     modalNewBtn.style.opacity = "0.6";
   } else {
@@ -600,10 +586,6 @@ function selectNode(n) {
   const nodeEl = document.querySelector(`.node[data-id="${n}"]`);
   if (nodeEl) nodeEl.classList.add("selected");
 
-  document.getElementById("selreadout").textContent = n;
-  document.getElementById("selreadout").classList.add("armed");
-  setMessage(`Node ${n} selected. Press 1, 2, or 3 to inject energy.`);
-
   updateMobileControlsVisibility();
 }
 
@@ -615,14 +597,8 @@ function deselectNode() {
     g.classList.remove("selected");
   });
 
-  document.getElementById("selreadout").textContent = "—";
-  document.getElementById("selreadout").classList.remove("armed");
-  setMessage("Select a node to begin calibration.");
-
   updateMobileControlsVisibility();
 }
-
-function setMessage(msg){ document.getElementById("message").textContent = msg; }
 
 function flashNode(n){
   const g = svgNodes.querySelector(`[data-id="${n}"]`);
@@ -662,13 +638,6 @@ function spawnPulseDot(a, b, duration){
 
 function logInjection(node, value){
   injections++;
-  log.unshift({node, value});
-  if(log.length > 6) log.pop();
-  const el = document.getElementById("log");
-  el.innerHTML = log.map(item =>
-    `<div><span class="n">${item.node}</span><span>+${item.value} energy</span></div>`
-  ).join("");
-  document.getElementById("counter").textContent = injections + (injections === 1 ? " injection" : " injections");
   document.getElementById("headerInjections").textContent = injections;
 }
 
@@ -685,6 +654,7 @@ function inject(node, value){
   }
   for(const n of reach){
     const d = dist[n];
+    if (contribution(value, d) === 0) continue; // Skip nodes with no value change
     setTimeout(() => {
       state[n] += contribution(value, d);
       updateNodeVisual(n);
@@ -701,12 +671,10 @@ function inject(node, value){
   setTimeout(() => {
     if(solved() && !alreadySolved){
       alreadySolved = true;
-      setMessage("Calibrated — every node matches its target.");
       showCongrats();
-    } else if(!solved()){
-      setMessage(`Injected ${value} energy at node ${node}.`);
     }
   }, maxDist * 230 + 80);
+  updatePuzzleDetails();
 }
 
 // Mode Toggle
@@ -714,6 +682,11 @@ function inject(node, value){
 function updateUILockState(){
   const isDaily = currentMode === "daily";
   
+  const newPuzzleBtn = document.getElementById("newPuzzleBtn");
+  if (newPuzzleBtn) {
+    newPuzzleBtn.disabled = isDaily;
+  }
+
   // Difficulty buttons
   document.querySelectorAll('.difficulty-btn').forEach(b => {
     const isMedium = b.dataset.diff === "medium";
@@ -727,13 +700,6 @@ function updateUILockState(){
     }
   });
 
-  // New Puzzle button
-  const newPuzzleBtn = document.getElementById("newpuzzle");
-  if (newPuzzleBtn) {
-    newPuzzleBtn.style.pointerEvents = isDaily ? "none" : "auto";
-    newPuzzleBtn.style.opacity = isDaily ? "0.5" : "1";
-    newPuzzleBtn.textContent = isDaily ? "↻ Daily Puzzle (Locked)" : "↻ New Puzzle";
-  }
 }
 // Save the current game state to localStorage
 function saveGameState() {
@@ -741,7 +707,6 @@ function saveGameState() {
     currentMode,
     currentDifficulty,
     injections,
-    log,
     alreadySolved,
     state,
   };
@@ -802,7 +767,6 @@ function loadGameState() {
  
   state = gameState.state;
   injections = gameState.injections;
-  log = gameState.log;
   alreadySolved = gameState.alreadySolved;
  
   maxScale = Math.max(...Object.values(target), 1) * 1.25 || 10;
@@ -811,22 +775,17 @@ function loadGameState() {
   if (nodeCountEl) nodeCountEl.textContent = LABELS.length;
   const modeText = currentMode === "daily" ? "Daily Puzzle" : "Unlimited Mode";
   document.getElementById("modeTitle").textContent = `${modeText} · ${LABELS.length}-node lattice`;
- 
-  document.getElementById("log").innerHTML = log.length
-    ? log.map(item => `<div><span class="n">${item.node}</span><span>+${item.value} energy</span></div>`).join("")
-    : `<div class="empty">No injections yet</div>`;
-  document.getElementById("counter").textContent = injections + (injections === 1 ? " injection" : " injections");
   document.getElementById("headerInjections").textContent = injections;
  
   requestAnimationFrame(() => {
     buildGraphDOM();
     requestAnimationFrame(() => {
       updateAll();
-      setMessage("Game progress loaded!");
       computeOptimalAsync();
     });
   });
   updateMobileControlsVisibility();
+  updatePuzzleDetails();
 }
 
 // Call saveGameState whenever the game state changes
@@ -843,6 +802,7 @@ document.querySelectorAll('.mode-btn').forEach(btn => {
     updateUILockState();
 
     animatePuzzleTransition(resetGame);
+    updatePuzzleDetails();
   });
 });
 // Difficulty buttons
@@ -854,13 +814,21 @@ document.querySelectorAll('.difficulty-btn').forEach(btn => {
     currentDifficulty = btn.dataset.diff;
   });
 });
-document.getElementById("newpuzzle").addEventListener("click", () => {
-  if (currentMode === "daily") {
-    setMessage("Daily puzzle is fixed. It updates at 3 AM EST.");
-    return;
-  }
-  saveGameState();
-  animatePuzzleTransition(resetGame);
+document.getElementById('newPuzzleBtn').addEventListener('click', () => {
+  if (currentMode === 'daily') return;
+  document.getElementById('newPuzzleBackdrop').classList.add('show');
+});
+
+document.getElementById('closeNewPuzzleBtn').addEventListener('click', () => {
+  document.getElementById('newPuzzleBackdrop').classList.remove('show');
+});
+
+document.getElementById('createNewPuzzleBtn').addEventListener('click', () => {
+  const selectedDiff = document.querySelector('.difficulty-btn.active');
+  if (!selectedDiff) return;
+  currentDifficulty = selectedDiff.dataset.diff;
+  document.getElementById('newPuzzleBackdrop').classList.remove('show');
+  resetGame();
 });
 document.getElementById("resetCurrent")
   .addEventListener("click", () => {
@@ -869,7 +837,6 @@ document.getElementById("resetCurrent")
 document.getElementById("modalNewPuzzle").addEventListener("click", () => {
   hideCongrats();
   if (currentMode === "daily") {
-    setMessage("Daily puzzle completed! Come back tomorrow at 3 AM EST for the next one.");
     return;
   }
   animatePuzzleTransition(resetGame);
@@ -898,7 +865,6 @@ function resetCurrentPuzzle(){
   
   deselectNode();
   injections = 0;
-  log = [];
   alreadySolved = false;
   hideCongrats();
 
@@ -908,18 +874,12 @@ function resetCurrentPuzzle(){
   });
 
   document.getElementById("headerInjections").textContent = "0";
-  document.getElementById("selreadout").textContent = "—";
-  document.getElementById("selreadout").classList.remove("armed");
-  document.getElementById("log").innerHTML = `<div class="empty">No injections yet</div>`;
-  document.getElementById("counter").textContent = "0 injections";
   
-  setMessage(`Puzzle reset — same targets. Select a node to begin again.`);
   updateAll();
   updateMobileControlsVisibility();
+  updatePuzzleDetails();
 }
 function startTutorial() {
-  console.log("START TUTORIAL CALLED");
-
   tutorialActive = true;
   tutorialStep = 0;
 
@@ -1026,7 +986,6 @@ function resetGame(){
  
   deselectNode();
   injections = 0;
-  log = [];
   alreadySolved = false;
   hideCongrats();
  
@@ -1034,19 +993,13 @@ function resetGame(){
   if (nodeCountEl) nodeCountEl.textContent = n;
  
   document.getElementById("headerInjections").textContent = "0";
-  document.getElementById("selreadout").textContent = "—";
-  document.getElementById("selreadout").classList.remove("armed");
-  document.getElementById("log").innerHTML = `<div class="empty">No injections yet</div>`;
-  document.getElementById("counter").textContent = "0 injections";
  
   const modeText = currentMode === "daily" ? "Daily Puzzle" : "Unlimited Mode";
   document.getElementById("modeTitle").textContent =
-    `${modeText} · ${n}-node lattice`;
- 
-  setMessage(`${currentMode.toUpperCase()} • ${currentDifficulty} • ${n} nodes. Select a node to begin.`);
- 
+    `${modeText} · ${n}-node lattice`; 
   updateAll();
   updateMobileControlsVisibility();
+  updatePuzzleDetails();
 }
 
 updateUILockState();
@@ -1095,6 +1048,24 @@ document.querySelectorAll(".mobile-btn").forEach(btn => {
     }
   });
 });
+document.querySelectorAll('.energy-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const value = parseInt(btn.dataset.value, 10);
+    if (selected) inject(selected, value);
+  });
+});
+
+function updateEnergyButtons() {
+  const buttons = document.querySelectorAll('.energy-btn');
+  buttons.forEach(btn => {
+    btn.disabled = !selected;
+  });
+}
+function updatePuzzleDetails() {
+  document.getElementById("nodeCount").textContent = LABELS.length;
+  document.getElementById("injectionCount").textContent = injections;
+  document.getElementById("currentMode").textContent = currentMode === "daily" ? "Daily" : "Unlimited";
+}
 window.addEventListener("DOMContentLoaded", () => {
   const nextBtn = document.getElementById("tutorialNext");
   const skipBtn = document.getElementById("tutorialSkip");
