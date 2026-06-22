@@ -1069,3 +1069,57 @@ svg#svg {
   .close-btn:hover {
     background: rgba(240, 240, 240, 0.9);
   }
+  .target-pointer {
+    stroke: var(--violet);
+    stroke-width: 3;
+    stroke-linecap: round;
+    transition: stroke 160ms ease, stroke-width 160ms ease;
+    pointer-events: none;
+    filter: drop-shadow(0 6px 14px rgba(0,0,0,0.18));
+  }
+  
+  /* Exceed popup backdrop/popover */
+  .exceed-backdrop {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: rgba(0,0,0,0.45);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .18s ease;
+    z-index: 1200;
+    pointer-events: none;
+  }
+  .exceed-backdrop.show {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+  .exceed-popover {
+    background: var(--panel);
+    border: 2px solid var(--coral);
+    border-radius: 12px;
+    padding: 14px;
+    min-width: 260px;
+    text-align: center;
+    box-shadow: 0 18px 48px var(--coral-soft);
+  }
+  .exceed-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    color: var(--coral);
+  }
+  .exceed-btn {
+    flex: 1;
+    padding: 8px 12px;
+    background: var(--amber);
+    color: #070a11;
+    border: none;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+  .exceed-btn:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+  .exceed-popover .exceed-btn + .exceed-btn { background: var(--cyan); }

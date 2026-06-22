@@ -166,6 +166,15 @@
     <button class="close-btn" id="closeNewPuzzleBtn">Cancel</button>
   </div>
 </div>
+<div class="exceed-backdrop" id="exceedBackdrop" aria-hidden="true">
+  <div class="exceed-popover" id="exceedPopover" role="dialog" aria-modal="true">
+    <div class="exceed-title">Exceeded energy limit on dial</div>
+    <div class="exceed-actions" style="display:flex; gap:10px; margin-top:12px;">
+      <button class="exceed-btn" id="exceedRetry">↻ Try again</button>
+      <button class="exceed-btn" id="exceedNew">New Puzzle</button>
+    </div>
+  </div>
+</div>
 <script src="solver.js"></script>
 <script>
   if (typeof window.requestIdleCallback !== "function") {
@@ -294,7 +303,38 @@ function highlightPathsFrom(source, maxDist = 2){
     }
   });
 }
+let exceedShown = false;
+function showExceedPopup(){
+  exceedShown = true;
+  const backdrop = document.getElementById("exceedBackdrop");
+  const newBtn = document.getElementById("exceedNew");
+  // Hide / disable "New Puzzle" option on daily mode
+  if(newBtn){
+    if(currentMode === "daily"){
+      newBtn.style.display = "none";
+      newBtn.setAttribute("aria-hidden", "true");
+    } else {
+      newBtn.style.display = "";
+      newBtn.removeAttribute("aria-hidden");
+    }
+  }
+  if (backdrop) backdrop.classList.add("show");
+}
+function hideExceedPopup(){
+  exceedShown = false;
+  const backdrop = document.getElementById("exceedBackdrop");
+  if (backdrop) backdrop.classList.remove("show");
+}
 
+document.getElementById("exceedRetry")?.addEventListener("click", () => {
+  hideExceedPopup();
+  animatePuzzleTransition(resetCurrentPuzzle);
+});
+document.getElementById("exceedNew")?.addEventListener("click", () => {
+  hideExceedPopup();
+  if (currentMode === "daily") return;
+  animatePuzzleTransition(resetGame);
+});
 // Returns a fresh seeded RNG tied to "today" (3 AM EST rollover).
 function getDailyRandom() {
   return seededRandom(getDailySeed(getTodayStr()));
@@ -592,12 +632,19 @@ function updateNodeVisual(n){
   const fraction = Math.max(0, Math.min(1, state[n] / maxScale));
   g.querySelector(".arc").setAttribute("stroke-dashoffset", CIRC - fraction*CIRC);
 
-  const tFraction = Math.max(0, Math.min(1, target[n] / maxScale));
-  const p1 = angleToPoint(tFraction, R_OUTER-7);
-  const p2 = angleToPoint(tFraction, R_OUTER+7);
+
   const tick = g.querySelector(".tick");
-  tick.setAttribute("x1", p1.x); tick.setAttribute("y1", p1.y);
-  tick.setAttribute("x2", p2.x); tick.setAttribute("y2", p2.y);
+  const tickFixed = 0;
+  const tp1 = angleToPoint(tickFixed, R_OUTER-7);
+  const tp2 = angleToPoint(tickFixed, R_OUTER+7);
+  tick.setAttribute("x1", tp1.x); tick.setAttribute("y1", tp1.y);
+  tick.setAttribute("x2", tp2.x); tick.setAttribute("y2", tp2.y);
+
+  // rotating pointer shows the target position (dial moves). use stable scale reference
+  const FIXED_DIAL_MAX = Math.max(6, Math.ceil(maxScale)); // sensible upper bound
+  const ptrFraction = Math.max(0, Math.min(1, target[n] / FIXED_DIAL_MAX));
+  const pp1 = angleToPoint(ptrFraction, R_OUTER-7);
+  const pp2 = angleToPoint(ptrFraction, R_OUTER+7);
 
   g.querySelector(".value").textContent = state[n];
   g.querySelector(".target").textContent = target[n];
@@ -728,6 +775,9 @@ function inject(node, value){
       updateNodeVisual(n);
       flashNode(n);
       if(d > 0) flashEdge(parent[n], n);
+      if(!exceedShown && state[n] > target[n]) {
+        showExceedPopup();
+      }
     }, d * 230);
     if(d > 0){
       setTimeout(() => spawnPulseDot(parent[n], n, 230), (d-1) * 230);
@@ -1136,10 +1186,24 @@ function updateEnergyButtons() {
     btn.disabled = !selected;
   });
 }
-function updatePuzzleDetails() {
-  document.getElementById("nodeCount").textContent = LABELS.length;
-  document.getElementById("injectionCount").textContent = injections;
-  document.getElementById("currentMode").textContent = currentMode === "daily" ? "Daily" : "Unlimited";
+function updatePuzzleDetails(){
+  const nodeCountEl = document.getElementById("nodeCount");
+  const injCountEl = document.getElementById("injectionCount");
+  const modeEl = document.getElementById("currentMode");
+  const diffEl = document.getElementById("difficultyDisplay");
+
+  if(nodeCountEl) nodeCountEl.textContent = Array.isArray(LABELS) ? LABELS.length : "?";
+  if(injCountEl) injCountEl.textContent = injections ?? 0;
+  if(modeEl) modeEl.textContent = currentMode === "daily" ? "Daily" : "Unlimited";
+  if(diffEl) diffEl.textContent = (currentDifficulty || "medium").replace(/^\w/, c => c.toUpperCase());
+
+  // also ensure top "New Puzzle" button reflects daily/unlimited
+  const newBtn = document.getElementById("newPuzzleBtn");
+  if(newBtn){
+    newBtn.disabled = currentMode === "daily";
+    newBtn.style.opacity = currentMode === "daily" ? "0.5" : "1";
+    newBtn.style.pointerEvents = currentMode === "daily" ? "none" : "auto";
+  }
 }
 window.addEventListener("DOMContentLoaded", () => {
   const nextBtn = document.getElementById("tutorialNext");
