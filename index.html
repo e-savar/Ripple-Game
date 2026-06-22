@@ -175,8 +175,34 @@ let selected = null;
 let injections = 0;
 let log = [];
 let alreadySolved = false;
+let tutorialActive = false;
+let tutorialStep = 0;
 let currentDifficulty = "medium";
 let currentMode = "daily";
+
+const tutorialSteps = [
+  {
+    text: "Welcome to RIPPLE. Let's learn how to play.",
+    highlight: null
+  },
+  {
+    text: "Click a node to select it.",
+    highlight: ".node"
+  },
+  {
+    text: "Press 1, 2, or 3 to inject energy.",
+    highlight: ".mobile-controls"
+  },
+  {
+    text: "Energy ripples across connected nodes.",
+    highlight: "svg"
+  },
+  {
+    text: "Match all node values to their targets to win.",
+    highlight: "#optimalDisplay"
+  }
+];
+
 function updateMobileControlsVisibility() {
   const el = document.getElementById("mobileControls");
   if (!el) return;
@@ -548,6 +574,12 @@ function getTodayStr(){
   return today.toISOString().slice(0,10);
 }
 function selectNode(n) {
+  if (tutorialActive && tutorialStep === 1) {
+    setTimeout(() => {
+      tutorialStep++;
+      renderTutorial();
+    }, 300);
+  }
   selected = n;
 
   // Clear all selections first
@@ -636,6 +668,12 @@ function inject(node, value){
   const reach = LABELS.filter(n => dist[n] !== null && dist[n] <= value);
   const maxDist = Math.max(...reach.map(n => dist[n] || 0));
 
+  if (tutorialActive && tutorialStep === 2) {
+    setTimeout(() => {
+      tutorialStep++;
+      renderTutorial();
+    }, 500);
+  }
   for(const n of reach){
     const d = dist[n];
     setTimeout(() => {
@@ -786,9 +824,6 @@ function loadGameState() {
 document.addEventListener("keydown", saveGameState);
 document.getElementById("resetCurrent").addEventListener("click", saveGameState);
 
-// Load the saved game state on page load
-window.addEventListener("load", loadGameState);
-
 // Mode Toggle
 document.querySelectorAll('.mode-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -873,8 +908,70 @@ function resetCurrentPuzzle(){
   updateAll();
   updateMobileControlsVisibility();
 }
+function startTutorial() {
+  console.log("START TUTORIAL CALLED");
+
+  tutorialActive = true;
+  tutorialStep = 0;
+
+  const overlay = document.getElementById("tutorialOverlay");
+
+  overlay.classList.remove("hidden");
+
+  document
+    .querySelector(".graph-card")
+    .classList.add("tutorial-focus");
+
+  renderTutorial();
+}
+
+function renderTutorial() {
+  const step = tutorialSteps[tutorialStep];
+
+  document.getElementById("tutorialText").textContent = step.text;
+  document.getElementById("tutorialProgress").textContent =
+    `${tutorialStep + 1} / ${tutorialSteps.length}`;
+
+  document.querySelectorAll(".tutorial-highlight")
+    .forEach(el => el.classList.remove("tutorial-highlight"));
+
+  if (step.highlight) {
+    const el = document.querySelector(step.highlight);
+    if (el) el.classList.add("tutorial-highlight");
+  }
+
+  document.getElementById("tutorialNext").textContent =
+    tutorialStep === tutorialSteps.length - 1 ? "Finish" : "Next";
+}
+
+function nextTutorial() {
+  if (tutorialStep < tutorialSteps.length - 1) {
+    tutorialStep++;
+    renderTutorial();
+  } else {
+    endTutorial();
+  }
+}
+
+function endTutorial() {
+  tutorialActive = false;
+
+  document
+    .getElementById("tutorialOverlay")
+    .classList.add("hidden");
+
+  document
+    .querySelector(".graph-card")
+    .classList.remove("tutorial-focus");
+
+  document.querySelectorAll(".tutorial-highlight")
+    .forEach(el => el.classList.remove("tutorial-highlight"));
+
+  localStorage.setItem("seenTutorial", "true");
+}
 
 function resetGame(){
+  if (tutorialActive) return;
   localStorage.removeItem('gameState');
  
   let n;
@@ -990,16 +1087,45 @@ document.querySelectorAll(".mobile-btn").forEach(btn => {
     }
   });
 });
+window.addEventListener("DOMContentLoaded", () => {
+  const nextBtn = document.getElementById("tutorialNext");
+  const skipBtn = document.getElementById("tutorialSkip");
+
+  if (nextBtn) nextBtn.addEventListener("click", nextTutorial);
+  if (skipBtn) skipBtn.addEventListener("click", endTutorial);
+});
 window.addEventListener("resize", updateMobileControlsVisibility);
 window.addEventListener("orientationchange", updateMobileControlsVisibility);
-window.addEventListener('load', () => {
-  const popover = document.getElementById('howtoPopover');
-  const backdrop = document.getElementById('howtoBackdrop');
+// window.addEventListener('load', () => {
+//   const popover = document.getElementById('howtoPopover');
+//   const backdrop = document.getElementById('howtoBackdrop');
 
-  popover.classList.add('show');
-  backdrop.classList.add('show');
+//   popover.classList.add('show');
+//   backdrop.classList.add('show');
+// });
+window.addEventListener("load", () => {
+  loadGameState();
+
+  if (!localStorage.getItem("gameState")) {
+    resetGame();
+  }
+
+  setTimeout(startTutorial, 1000);
 });
-resetGame();
 </script>
+<div id="tutorialOverlay" class="tutorial-overlay hidden">
+
+  <div class="tutorial-card">
+    <div id="tutorialText"></div>
+
+    <div id="tutorialProgress" style="margin-top:10px; font-size:11px; color:var(--dim); font-family:'JetBrains Mono', monospace;"></div>
+
+    <div class="tutorial-footer" style="display:flex; justify-content:space-between; margin-top:14px;">
+      <button id="tutorialSkip" class="top-btn">Skip</button>
+      <button id="tutorialNext" class="top-btn">Next</button>
+    </div>
+  </div>
+</div>
 </body>
+
 </html>
