@@ -143,6 +143,22 @@
 </div>
 <script src="solver.js"></script>
 <script>
+  if (typeof window.requestIdleCallback !== "function") {
+  window.requestIdleCallback = function (callback) {
+    const start = Date.now();
+    return setTimeout(function () {
+      callback({
+        didTimeout: false,
+        timeRemaining: function () {
+          return Math.max(0, 50 - (Date.now() - start));
+        }
+      });
+    }, 1);
+  };
+  window.cancelIdleCallback = function (id) {
+    clearTimeout(id);
+  };
+}
 const MIN_NODES_EASY = 4; const MAX_NODES_EASY = 4;
 const MIN_NODES_MED = 5;  const MAX_NODES_MED = 6;
 const MIN_NODES_HARD = 7; const MAX_NODES_HARD = 9;
@@ -588,13 +604,17 @@ function spawnPulseDot(a, b, duration){
   const dot = document.createElementNS("http://www.w3.org/2000/svg","circle");
   dot.setAttribute("class","pulse-dot");
   dot.setAttribute("r", Math.max(4, R_OUTER*0.13));
-  dot.setAttribute("cx", POS[a].x);
-  dot.setAttribute("cy", POS[a].y);
+  // Position via `transform`, not cx/cy: WebKit/Safari can't GPU-composite
+  // an animated cx/cy change (it forces a layout + repaint every frame),
+  // while `transform` is composited and stays smooth on mobile.
+  dot.setAttribute("cx", 0);
+  dot.setAttribute("cy", 0);
+  dot.style.transitionProperty = "transform";
   dot.style.transitionDuration = duration + "ms";
+  dot.style.transform = `translate(${POS[a].x}px, ${POS[a].y}px)`;
   svgRoot.appendChild(dot);
   requestAnimationFrame(() => {
-    dot.setAttribute("cx", POS[b].x);
-    dot.setAttribute("cy", POS[b].y);
+    dot.style.transform = `translate(${POS[b].x}px, ${POS[b].y}px)`;
   });
   setTimeout(() => dot.remove(), duration + 40);
 }

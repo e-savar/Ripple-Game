@@ -235,7 +235,6 @@ header{
 .edge{
   stroke:#3c4f7a;
   stroke-width:4;
-  filter: drop-shadow(0 0 3px rgba(60,79,122,0.5));
   opacity: 0;
   transform: translateY(-8px);
   transition:stroke 0.25s, stroke-width 0.25s;
@@ -243,9 +242,7 @@ header{
 .edge.active{ 
     stroke:var(--amber); 
     stroke-width:6;
-    filter:
-    drop-shadow(0 0 6px var(--amber))
-    drop-shadow(0 0 12px var(--amber));
+    filter: drop-shadow(0 0 8px var(--amber));
 }
 .edge.visible {
     opacity: 0.95;
@@ -320,7 +317,7 @@ header{
 .pulse-dot{
   fill:var(--amber);
   filter:drop-shadow(0 0 5px var(--amber));
-  transition:cx linear, cy linear, opacity linear;
+  transition:transform linear, opacity linear;
 }
 
 /* panel */
@@ -632,18 +629,13 @@ svg#svg {
 /* Mobile controls styling */
 /* Mobile controls styling */
 .mobile-controls {
-
   margin-top: 12px;
-
   display: none;
   gap: 14px;
-
   padding: 10px 12px;
   border-radius: 14px;
-
-  background: rgba(16, 24, 42, 0.85);
+  background: rgba(10, 14, 24, 0.97);
   border: 1px solid var(--amber);
-  backdrop-filter: blur(10px);
 }
 
 /* ONLY show on mobile AND when node is selected */
@@ -753,12 +745,11 @@ svg#svg {
   right: 12px;
   font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
-  color: var(--amber); /* Text color for dark mode */
-  background: rgba(16, 24, 42, 0.7); /* Background for dark mode */
-  border: 1px solid var(--panel-edge); /* Border for dark mode */
+  color: var(--amber);
+  background: rgba(10, 14, 24, 0.92);
+  border: 1px solid var(--panel-edge);
   padding: 6px 10px;
   border-radius: 10px;
-  backdrop-filter: blur(8px);
 }
 
 /* Light Mode Override */
