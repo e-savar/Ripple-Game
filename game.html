@@ -242,13 +242,10 @@ header{
 .edge{
   stroke:#3c4f7a;
   stroke-width:4;
-
+  filter: drop-shadow(0 0 3px rgba(60,79,122,0.5));
   opacity: 0;
-  transition: opacity 0.4s ease;
-
+  transform: translateY(-8px);
   transition:stroke 0.25s, stroke-width 0.25s;
-
-  filter:drop-shadow(0 0 3px rgba(60,79,122,0.5));
 }
 .edge.active{ 
     stroke:var(--amber); 
@@ -259,6 +256,20 @@ header{
 }
 .edge.visible {
     opacity: 0.95;
+}
+.edge.reveal {
+  animation: edgeDropIn 0.55s cubic-bezier(.2,.8,.2,1) forwards;
+}
+
+@keyframes edgeDropIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 0.95;
+    transform: translateY(0px);
+  }
 }
 
 .node{ cursor:pointer; }
@@ -1150,16 +1161,21 @@ function buildGraphDOM(){
     node.classList.remove("entering");
   }, { once:true });
 });
-document.querySelectorAll(".edge").forEach(e => {
-  e.classList.remove("visible");
+const edgeEls = Array.from(document.querySelectorAll(".edge"));
+
+// sort edges top → bottom using midpoint Y
+edgeEls.sort((a, b) => {
+  const ay = (parseFloat(a.getAttribute("y1")) + parseFloat(a.getAttribute("y2"))) / 2;
+  const by = (parseFloat(b.getAttribute("y1")) + parseFloat(b.getAttribute("y2"))) / 2;
+  return ay - by;
 });
 
-// wait for node animation to finish, then fade edges in
-setTimeout(() => {
-  document.querySelectorAll(".edge").forEach(e => {
-    e.classList.add("visible");
-  });
-}, LABELS.length * 120 + 400);
+// stagger reveal
+edgeEls.forEach((edge, i) => {
+  setTimeout(() => {
+    edge.classList.add("reveal");
+  }, i * 100); // tweak speed here
+});
 }
 
 function angleToPoint(fraction, radius){
