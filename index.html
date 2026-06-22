@@ -83,8 +83,6 @@
         <p class="section-label" style="margin-bottom:8px;">Injection log</p>
         <div class="log" id="log"><div class="empty">No injections yet</div></div>
         <div class="counter" id="counter">0 injections</div>
-
-        <button id="shareBtn" class="share-btn">Share Today's Result</button>
       </div>
     </div>
   </div>
@@ -106,6 +104,7 @@
         <span class="stat-label">nodes</span>
       </div>
     </div>
+    <button class="share-btn" id="modalShareBtn" style="display:none; width:100%; margin-bottom:10px;">Share Today's Result</button>
     <button class="modal-newpuzzle" id="modalNewPuzzle">↻ New puzzle</button>
   </div>
 </div>
@@ -508,7 +507,8 @@ function updateAll(){
 function showCongrats(){
   document.getElementById("statInjections").textContent = injections;
   document.getElementById("statNodes").textContent = LABELS.length;
-  
+  const modalShareBtn = document.getElementById("modalShareBtn");
+  modalShareBtn.style.display = currentMode === "daily" ? "block" : "none";
   const modalNewBtn = document.getElementById("modalNewPuzzle");
   if (currentMode === "daily") {
     modalNewBtn.textContent = "✅ Daily Complete";
@@ -814,7 +814,7 @@ document.getElementById("modalBackdrop").addEventListener("click", (e) => {
   if(e.target.id === "modalBackdrop") hideCongrats();
 });
 
-document.getElementById("shareBtn").addEventListener("click", () => {
+document.getElementById("modalShareBtn").addEventListener("click", () => {
   const date = new Date().toISOString().slice(0,10);
   const text = `⚡️ RIPPLE ${date}\n${currentDifficulty.toUpperCase()} • ${LABELS.length} nodes • ${injections} injections\nSolved!`;
   navigator.clipboard.writeText(text).then(() => alert("✅ Copied to clipboard!"));
