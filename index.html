@@ -99,6 +99,17 @@
     <button class="modal-newpuzzle" id="modalNewPuzzle">↻ New puzzle</button>
   </div>
 </div>
+<div class="tutorial-congrats-backdrop" id="tutorialCongratsBackdrop" aria-hidden="true">
+  <div class="modal-card tutorial-congrats-card">
+    <button class="modal-close" id="tutorialCongratsClose" aria-label="Close">×</button>
+    <div class="modal-icon">🎉</div>
+    <h2>Tutorial Complete</h2>
+    <p class="modal-sub">You matched every node in the tutorial puzzle.</p>
+    <div style="display:flex; gap:10px; margin-top:12px;">
+      <button id="letsPlayBtn" class="modal-newpuzzle" style="flex:1">Let's Play!</button>
+    </div>
+  </div>
+</div>
 <div class="howto-backdrop" id="howtoBackdrop"></div>
 <div class="howto-popover" id="howtoPopover">
       <h3 style="margin:0 0 12px 0; color:var(--amber);">How to Play RIPPLE</h3>
@@ -213,48 +224,86 @@ let tutorialStep = 0;
 let currentDifficulty = "medium";
 let currentMode = "daily";
 
+let tutorialTimer = null;
+
+function clearTutorialTimer(){
+  if (tutorialTimer) { clearTimeout(tutorialTimer); tutorialTimer = null; }
+}
+
+function setGraphInteractive(enabled){
+  svgRoot.style.pointerEvents = enabled ? "" : "none";
+}
+
+function tutorialSelectNode(node){
+  selected = node;
+  document.querySelectorAll(".node").forEach(g => g.classList.remove("selected"));
+  const el = document.querySelector(`.node[data-id="${node}"]`);
+  if (el) el.classList.add("selected");
+}
+
+// Same visuals as a real injection (flash/pulse/edge), but scripted.
+// Returns total animation time in ms so the caller knows how long to wait.
+function tutorialAnimateInjection(node, value){
+  const { dist, parent } = bfsParent(node);
+  const reach = LABELS.filter(n => dist[n] !== null && dist[n] <= value);
+  let maxDist = 0;
+  for(const n of reach){
+    const d = dist[n];
+    const add = contribution(value, d);
+    if (add === 0) continue;
+    maxDist = Math.max(maxDist, d);
+    setTimeout(() => {
+      state[n] += add;
+      updateNodeVisual(n);
+      flashNode(n);
+      if (d > 0) flashEdge(parent[n], n);
+    }, d * 230);
+    if (d > 0) setTimeout(() => spawnPulseDot(parent[n], n, 230), (d - 1) * 230);
+  }
+  updatePuzzleDetails();
+  return maxDist * 230 + 300;
+}
+
 const tutorialSteps = [
   {
-    text: "Welcome to RIPPLE! Let's learn how to play.",
-    highlight: null
+    text: "Welcome to RIPPLE! Let's watch how a puzzle works.",
+    highlight: null,
+    duration: 2400
   },
   {
-    text: "This is the lattice. Each circle is a node. Click a node to select it.",
-    highlight: ".node"
+    text: "This is the lattice. Each circle is a node, connected to its neighbors by edges.",
+    highlight: "svg",
+    duration: 2600
   },
   {
-    text: "Use the buttons below or press 1, 2, or 3 to inject energy into the selected node.",
-    highlight: ".mobile-controls"
+    text: "Watch — we select node B.",
+    action: () => { tutorialSelectNode("B"); return 1300; }
   },
   {
-    text: "Energy ripples outward through connected nodes. Stronger ripples occur closer to the source.",
-    highlight: "svg"
+    text: "Now we inject 2 units of energy into B. Watch it ripple outward to its neighbors.",
+    action: () => tutorialAnimateInjection("B", 2) + 700
   },
   {
-    text: "Ripple strength decays with distance. The tutorial will highlight the paths the ripple takes — edges that contribute energy to a node.",
-    highlightPath: { value: 2 } // value = how far to visualize (1..3)
+    text: "B kept the full 2 — but A, C, and D, one step away, only received 1. Energy loses 1 unit of strength for every step it travels.",
+    action: () => { highlightPathsFrom("B", 1); return 3600; }
   },
   {
-    text: "Match all node values to their targets to win. Green = Perfect match, Yellow = Off by 1, Red = Off by 2+.",
-    highlight: "#optimalDisplay"
+    text: "One more unit into B brings it to its target of 3 — and since A, C, and D are a full step away, an injection this small is too weak to reach them at all.",
+    action: () => tutorialAnimateInjection("B", 1) + 900
   },
   {
-    text: "Great job! You're ready to play. Good luck!",
-    highlight: null
+    text: "Every node now matches its target — fully calibrated! Your goal: match every value using as few injections as possible.",
+    highlight: "#optimalDisplay",
+    duration: 3000
   }
 ];
-
 
 function updateMobileControlsVisibility() {
   const el = document.getElementById("mobileControls");
   if (!el) return;
-
-  const shouldShow = selected && window.innerWidth <= 768;
-  if (shouldShow && !el.classList.contains("show")) {
-    el.classList.add("show");
-  } else if (!shouldShow && el.classList.contains("show")) {
-    el.classList.remove("show");
-  }
+  const shouldShow = !tutorialActive && selected && window.innerWidth <= 768;
+  if (shouldShow && !el.classList.contains("show")) el.classList.add("show");
+  else if (!shouldShow && el.classList.contains("show")) el.classList.remove("show");
 }
 // Seeded random for Daily consistency
 function seededRandom(seed) {
@@ -339,7 +388,25 @@ document.getElementById("exceedNew")?.addEventListener("click", () => {
 function getDailyRandom() {
   return seededRandom(getDailySeed(getTodayStr()));
 }
+function showTutorialCongrats(){
+  const back = document.getElementById("tutorialCongratsBackdrop");
+  if (!back) return;
+  back.classList.add("show");
+}
+function hideTutorialCongrats(){
+  const back = document.getElementById("tutorialCongratsBackdrop");
+  if (!back) return;
+  back.classList.remove("show");
+}
 
+document.getElementById("tutorialCongratsClose")?.addEventListener("click", () => {
+  hideTutorialCongrats();
+  animatePuzzleTransition(resetGame);
+});
+document.getElementById("letsPlayBtn")?.addEventListener("click", () => {
+  hideTutorialCongrats();
+  animatePuzzleTransition(resetGame);
+});
 function shuffle(arr, rand = Math.random) {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(rand() * (i + 1));
@@ -523,6 +590,36 @@ function generatePuzzle(rand = Math.random){
   });
 }
 
+function generateTutorialPuzzle() {
+  // small 4-node tutorial topology (A-B-C, B-D)
+  LABELS = ["A","B","C","D"];
+  EDGES = { A: ["B"], B: ["A","C","D"], C: ["B"], D: ["B"] };
+  POS = computeLayout(LABELS);
+
+  // deterministic easy targets: central B higher so player's injection effect is obvious
+  target = { A: 1, B: 3, C: 1, D: 1 };
+
+  // runtime state starts at zero
+  state = {};
+  LABELS.forEach(l => state[l] = 0);
+
+  maxScale = Math.max(...Object.values(target), 1) * 1.25 || 6;
+
+  buildGraphDOM();
+  // give visuals a frame to settle
+  requestAnimationFrame(() => {
+    updateAll();
+    computeOptimalAsync();
+    updatePuzzleDetails();
+  });
+
+  // ensure UI reflects tutorial context
+  const modeText = "Tutorial";
+  const nodeCountEl = document.getElementById("nodecount");
+  if (nodeCountEl) nodeCountEl.textContent = LABELS.length;
+  document.getElementById("modeTitle").textContent = `${modeText} · ${LABELS.length}-node lattice`;
+}
+
 function errorOf(n){ return Math.abs(state[n] - target[n]); }
 function statusOf(n){
   const e = errorOf(n);
@@ -538,7 +635,7 @@ const svgNodes = document.getElementById("nodes");
 const svgRoot = document.getElementById("svg");
 
 function buildGraphDOM(){
-    const svgEdges = document.getElementById("edges");
+  const svgEdges = document.getElementById("edges");
   const svgNodes = document.getElementById("nodes");
 
   // HARD RESET: prevent any intermediate rendering of old nodes
@@ -589,7 +686,10 @@ function buildGraphDOM(){
       <text class="label" y="${-R_OUTER-14}" style="font-size:${Math.max(10,12*scale)}px">${l}</text>
       <text class="value" y="${7*scale}" style="font-size:${Math.max(14,25*scale)}px">0</text>
     <text class="target" y="${25*scale}" style="font-size:${Math.max(11,13*scale)}px; font-weight:700">0</text>    `;
-    g.addEventListener("click", () => selectNode(l));
+    g.addEventListener("click", () => {
+      if (tutorialActive) return;
+      selectNode(l);
+    });
     svgNodes.appendChild(g);
   }
   document.querySelectorAll(".node").forEach((node, i) => {
@@ -622,6 +722,7 @@ function angleToPoint(fraction, radius){
   const ang = fraction * Math.PI * 2 - Math.PI/2;
   return { x: radius*Math.cos(ang), y: radius*Math.sin(ang) };
 }
+
 
 function updateNodeVisual(n){
   const g = svgNodes.querySelector(`[data-id="${n}"]`);
@@ -657,6 +758,7 @@ function updateAll(){
 }
 
 function showCongrats(){
+  if (tutorialActive) { showTutorialCongrats(); return; }
   document.getElementById("statInjections").textContent = injections;
   document.getElementById("statNodes").textContent = LABELS.length;
   const modalShareBtn = document.getElementById("modalShareBtn");
@@ -684,23 +786,11 @@ function getTodayStr(){
   return today.toISOString().slice(0,10);
 }
 function selectNode(n) {
-  if (tutorialActive && tutorialStep === 1) {
-    setTimeout(() => {
-      tutorialStep++;
-      renderTutorial();
-    }, 300);
-  }
+  if (tutorialActive) return;
   selected = n;
-
-  // Clear all selections first
-  document.querySelectorAll(".node").forEach(g => {
-    g.classList.remove("selected");
-  });
-
-  // Add to the new one
+  document.querySelectorAll(".node").forEach(g => g.classList.remove("selected"));
   const nodeEl = document.querySelector(`.node[data-id="${n}"]`);
   if (nodeEl) nodeEl.classList.add("selected");
-
   updateMobileControlsVisibility();
 }
 
@@ -757,31 +847,22 @@ function logInjection(node, value){
 }
 
 function inject(node, value){
+  if (tutorialActive) return;
   const {dist, parent} = bfsParent(node);
   const reach = LABELS.filter(n => dist[n] !== null && dist[n] <= value);
   const maxDist = Math.max(...reach.map(n => dist[n] || 0));
 
-  if (tutorialActive && tutorialStep === 2) {
-    setTimeout(() => {
-      tutorialStep++;
-      renderTutorial();
-    }, 500);
-  }
   for(const n of reach){
     const d = dist[n];
-    if (contribution(value, d) === 0) continue; // Skip nodes with no value change
+    if (contribution(value, d) === 0) continue;
     setTimeout(() => {
       state[n] += contribution(value, d);
       updateNodeVisual(n);
       flashNode(n);
       if(d > 0) flashEdge(parent[n], n);
-      if(!exceedShown && state[n] > target[n]) {
-        showExceedPopup();
-      }
+      if(!exceedShown && state[n] > target[n]) showExceedPopup();
     }, d * 230);
-    if(d > 0){
-      setTimeout(() => spawnPulseDot(parent[n], n, 230), (d-1) * 230);
-    }
+    if(d > 0) setTimeout(() => spawnPulseDot(parent[n], n, 230), (d-1) * 230);
   }
 
   logInjection(node, value);
@@ -794,6 +875,7 @@ function inject(node, value){
   }, maxDist * 230 + 80);
   updatePuzzleDetails();
 }
+
 
 // Mode Toggle
 // ==================== MODE & DIFFICULTY HANDLING ====================
@@ -907,8 +989,8 @@ function loadGameState() {
 }
 
 // Call saveGameState whenever the game state changes
-document.addEventListener("keydown", saveGameState);
-document.getElementById("resetCurrent").addEventListener("click", saveGameState);
+document.addEventListener("keydown", (e) => { if (!tutorialActive) saveGameState(); });
+document.getElementById("resetCurrent").addEventListener("click", () => { if (!tutorialActive) saveGameState(); });
 
 // Mode Toggle
 document.querySelectorAll('.mode-btn').forEach(btn => {
@@ -970,6 +1052,7 @@ document.getElementById("modalShareBtn").addEventListener("click", () => {
 });
 
 document.addEventListener("keydown", (e) => {
+  if (tutorialActive) return;
   if(e.key.toLowerCase() === "r") animatePuzzleTransition(resetGame);
   if(e.key === "Escape") hideCongrats();
   if(["1","2","3"].includes(e.key) && selected) inject(selected, parseInt(e.key));
@@ -1002,66 +1085,73 @@ function startTutorial() {
   tutorialStep = 0;
 
   currentDifficulty = "easy";
-  resetGame();
+  generateTutorialPuzzle();
 
   const overlay = document.getElementById("tutorialOverlay");
+  if (overlay) overlay.classList.remove("hidden");
 
-  overlay.classList.remove("hidden");
+  document.querySelector(".graph-card").classList.add("tutorial-focus");
 
-  document
-    .querySelector(".graph-card")
-    .classList.add("tutorial-focus");
+  setGraphInteractive(false);
+  deselectNode();
+  updateMobileControlsVisibility();
 
-  renderTutorial();
+  runTutorialStep();
 }
 
-function renderTutorial() {
+function runTutorialStep() {
+  if (!tutorialActive) return;
   const step = tutorialSteps[tutorialStep];
 
   document.getElementById("tutorialText").textContent = step.text;
   document.getElementById("tutorialProgress").textContent =
     `${tutorialStep + 1} / ${tutorialSteps.length}`;
 
-  document.querySelectorAll(".tutorial-highlight").forEach(el => el.classList.remove("tutorial-highlight"));
   clearTutorialHighlights();
 
   if (step.highlight) {
     const el = document.querySelector(step.highlight);
     if (el) el.classList.add("tutorial-highlight");
   }
-  if (step.highlightPath) {
-    // prefer currently selected node; fallback to first LABEL
-    const source = selected || (LABELS.length ? LABELS[0] : null);
-    if (source) highlightPathsFrom(source, step.highlightPath.value || 2);
+
+  let waitMs = step.duration || 2600;
+  if (typeof step.action === "function") {
+    const result = step.action();
+    if (typeof result === "number") waitMs = result;
   }
+
   document.getElementById("tutorialNext").textContent =
-    tutorialStep === tutorialSteps.length - 1 ? "Finish" : "Next";
+    tutorialStep === tutorialSteps.length - 1 ? "Finish" : "Skip ▶";
+
 }
 
 function nextTutorial() {
+  clearTutorialTimer();
   if (tutorialStep < tutorialSteps.length - 1) {
     tutorialStep++;
-    renderTutorial();
+    runTutorialStep();
   } else {
     endTutorial();
+    showTutorialCongrats();
   }
 }
 
 function endTutorial() {
+  clearTutorialTimer();
   tutorialActive = false;
+  localStorage.setItem("tutorialSeen", "1");
 
-  document
-    .getElementById("tutorialOverlay")
-    .classList.add("hidden");
+  document.getElementById("tutorialOverlay").classList.add("hidden");
+  document.querySelector(".graph-card").classList.remove("tutorial-focus");
 
-  document
-    .querySelector(".graph-card")
-    .classList.remove("tutorial-focus");
+  setGraphInteractive(true);
 
-  document.querySelectorAll(".tutorial-highlight")
-    .forEach(el => el.classList.remove("tutorial-highlight"));
-
+  document.querySelectorAll(".node").forEach(n => {
+    n.classList.remove("tutorial-disabled", "tutorial-focused", "exceed-shake");
+  });
+  clearTutorialHighlights();
 }
+
 
 function resetGame(){
   if (tutorialActive) return;
@@ -1167,14 +1257,14 @@ document.addEventListener('click', (e) => {
 });
 document.querySelectorAll(".mobile-btn").forEach(btn => {
   btn.addEventListener("click", () => {
+    if (tutorialActive) return;
     const value = parseInt(btn.dataset.value, 10);
-    if (selected) {
-      inject(selected, value);
-    }
+    if (selected) inject(selected, value);
   });
 });
 document.querySelectorAll('.energy-btn').forEach(btn => {
   btn.addEventListener('click', () => {
+    if (tutorialActive) return;
     const value = parseInt(btn.dataset.value, 10);
     if (selected) inject(selected, value);
   });
@@ -1210,25 +1300,17 @@ window.addEventListener("DOMContentLoaded", () => {
   const skipBtn = document.getElementById("tutorialSkip");
 
   if (nextBtn) nextBtn.addEventListener("click", nextTutorial);
-  if (skipBtn) skipBtn.addEventListener("click", endTutorial);
+  if (skipBtn) skipBtn.addEventListener("click", () => {
+    endTutorial();
+    animatePuzzleTransition(resetGame);
+  });
 });
 window.addEventListener("resize", updateMobileControlsVisibility);
 window.addEventListener("orientationchange", updateMobileControlsVisibility);
-// window.addEventListener('load', () => {
-//   const popover = document.getElementById('howtoPopover');
-//   const backdrop = document.getElementById('howtoBackdrop');
-
-//   popover.classList.add('show');
-//   backdrop.classList.add('show');
-// });
 window.addEventListener("load", () => {
   loadGameState();
-
-  if (!localStorage.getItem("gameState")) {
-    resetGame();
-  }
-
-  setTimeout(startTutorial, 650);
+  if (!localStorage.getItem("gameState")) resetGame();
+  if (!localStorage.getItem("tutorialSeen")) setTimeout(startTutorial, 650);
 });
 </script>
 <div id="tutorialOverlay" class="tutorial-overlay hidden">
